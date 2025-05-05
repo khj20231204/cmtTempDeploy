@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.mes.warehouse.WarehouseMasterMapper">
+
+    <!-- 창고 기준정보 목록 조회-->
+    <select id="selectWarehouses" resultType="map" parameterType="map">
+        SELECT                         
+            WHS_NO,                    
+            WHS_CODE,                  
+            WHS_NAME,                  
+            WHS_TYPE,              
+            WHS_LOCATION,                  
+            WHS_CAPACITY,           
+            WHS_COMMENTS,           
+            USE_YN,           
+            CREATED_BY,           
+            UPDATED_BY,
+            CREATED_DATE,
+            UPDATED_DATE          
+        FROM                           
+            WAREHOUSES
+        WHERE
+            USE_YN = 'Y'
+        <if test="keyword != null and keyword != ''">
+            AND (
+                UPPER(WHS_CODE) LIKE '%' || UPPER(#{keyword}) || '%'
+                OR UPPER(WHS_NAME) LIKE '%' || UPPER(#{keyword}) || '%'
+                OR UPPER(WHS_LOCATION) LIKE '%' || UPPER(#{keyword}) || '%'
+            )
+        </if>
+        ORDER BY
+            WHS_NO DESC
+    </select>
+    
+    <!-- 창고 기준정보 목록 단건 조회 -->
+    <select id="selectSingleWarehouse" resultType="map" parameterType="map">
+        SELECT                         
+            WHS_NO,                    
+            WHS_CODE,                  
+            WHS_NAME,                  
+            WHS_TYPE,              
+            WHS_LOCATION,                  
+            WHS_CAPACITY,           
+            WHS_COMMENTS,           
+            USE_YN,           
+            CREATED_BY,           
+            UPDATED_BY,
+            CREATED_DATE,
+            UPDATED_DATE          
+        FROM                           
+            WAREHOUSES
+        WHERE
+            WHS_CODE = #{WHS_CODE}
+    </select>
+    
+    <!-- 창고 기준정보 등록(INSERT) -->
+    <insert id="insertWarehouse" parameterType="map">
+        INSERT INTO WAREHOUSES(
+            WHS_NO,                    
+            WHS_CODE,                  
+            WHS_NAME,                  
+            WHS_TYPE,              
+            WHS_LOCATION,                  
+            WHS_CAPACITY,           
+            WHS_COMMENTS,           
+            USE_YN,           
+            CREATED_BY,           
+            UPDATED_BY,
+            CREATED_DATE,
+            UPDATED_DATE          
+        ) VALUES (
+            SEQ_WAREHOUSES.NEXTVAL,
+            #{WHS_CODE},
+            #{WHS_NAME},
+            #{WHS_TYPE},
+            #{WHS_LOCATION},
+            #{WHS_CAPACITY},
+            #{WHS_COMMENTS},
+            #{USE_YN},
+            #{CREATED_BY},
+            #{UPDATED_BY},
+            SYSDATE,
+            NULL
+        )
+    </insert>        
+
+    <!-- 창고 기준정보 수정(UPDATE) -->
+    <update id="updateWarehouse" parameterType="map">
+        UPDATE WAREHOUSES
+        SET
+            WHS_NAME =       #{WHS_NAME},           
+            WHS_TYPE =       #{WHS_TYPE},           
+            WHS_LOCATION =   #{WHS_LOCATION},           
+            WHS_CAPACITY =   #{WHS_CAPACITY},          
+            WHS_COMMENTS =   #{WHS_COMMENTS},        
+            USE_YN =         #{USE_YN},      
+            UPDATED_BY =     #{UPDATED_BY},
+            UPDATED_DATE =   SYSDATE        
+        WHERE
+            WHS_CODE = #{WHS_CODE}
+    </update>
+    
+    <!-- 창고 기준정보 삭제(DELETE) -->    
+    <delete id="deleteWarehouse" parameterType="map">
+        DELETE 
+        FROM 
+            WAREHOUSES
+        WHERE
+            WHS_CODE = #{WHS_CODE}
+    </delete>
+    
+    <!-- 창고별 위치 목록 조회 -->
+	<select id="selectWarehouseLocations" resultType="map" parameterType="map">
+	    SELECT
+	        LOC_NO,                <!-- 위치 번호 -->
+	        WHS_CODE,              <!-- 창고 코드 -->
+	        LOC_CODE,              <!-- 위치 코드 -->
+	        LOC_NAME,              <!-- 위치 명칭 -->
+	        LOC_TYPE,              <!-- 위치 유형 -->
+	        CAPACITY,              <!-- 수용 용량 -->
+	        CURRENT_USAGE,         <!-- 현재 사용량 -->
+	        USE_YN                 <!-- 사용 여부 -->
+	    FROM
+	        WAREHOUSE_LOCATION
+	    WHERE
+	        USE_YN = 'Y'
+	        AND WHS_CODE = #{whsCode}
+	    <if test="keyword != null and keyword != ''">
+	        AND (
+	            UPPER(LOC_CODE) LIKE '%' || UPPER(#{keyword}) || '%' OR
+	            UPPER(LOC_NAME) LIKE '%' || UPPER(#{keyword}) || '%'
+	        )
+	    </if>
+	    ORDER BY LOC_CODE ASC
+	</select>
+	
+	<!-- 위치정보 단건 조회 -->
+	<select id="selectSingleLocation" parameterType="map" resultType="map">
+	    SELECT
+	        LOC_NO,
+	        WHS_CODE,
+	        LOC_CODE,
+	        LOC_NAME,
+	        LOC_TYPE,
+	        CAPACITY,
+	        CURRENT_USAGE,
+	        USE_YN,
+	        CREATED_BY,
+	        UPDATED_BY,
+	        CREATED_DATE,
+	        UPDATED_DATE
+	    FROM
+	        WAREHOUSE_LOCATION
+	    WHERE
+	        LOC_CODE = #{LOC_CODE}
+	</select>
+	
+	<!-- 위치정보 등록 -->
+	<insert id="insertLocation" parameterType="map">
+	    INSERT INTO WAREHOUSE_LOCATION (
+	        LOC_NO,
+	        WHS_CODE,
+	        LOC_CODE,
+	        LOC_NAME,
+	        LOC_TYPE,
+	        CAPACITY,
+	        CURRENT_USAGE,
+	        USE_YN,
+	        CREATED_BY,
+	        UPDATED_BY,
+	        CREATED_DATE,
+	        UPDATED_DATE
+	    ) VALUES (
+	        SEQ_WAREHOUSE_LOCATION.NEXTVAL,
+	        #{WHS_CODE},
+	        #{LOC_CODE},
+	        #{LOC_NAME},
+	        #{LOC_TYPE, jdbcType=VARCHAR},
+	        #{CAPACITY, jdbcType=VARCHAR},
+	        #{CURRENT_USAGE, jdbcType=VARCHAR},
+	        #{USE_YN, jdbcType=VARCHAR},
+	        #{createdBy, jdbcType=VARCHAR},
+	        #{updatedBy, jdbcType=VARCHAR},
+	        SYSDATE,
+	        NULL
+	    )
+	</insert>
+
+	<!-- 위치정보 수정 -->
+	<update id="updateLocation" parameterType="map">
+	    UPDATE WAREHOUSE_LOCATION
+	    SET
+	        LOC_NAME = #{LOC_NAME},
+	        LOC_TYPE = #{LOC_TYPE, jdbcType=VARCHAR},
+	        WHS_CODE = #{WHS_CODE},
+	        CAPACITY = #{CAPACITY, jdbcType=VARCHAR},
+	        CURRENT_USAGE = #{CURRENT_USAGE, jdbcType=VARCHAR},
+	        USE_YN = #{USE_YN, jdbcType=VARCHAR},
+	        UPDATED_BY = #{updatedBy, jdbcType=VARCHAR},
+	        UPDATED_DATE = SYSDATE
+	    WHERE
+	        LOC_CODE = #{LOC_CODE}
+	</update>
+	
+	<!-- 위치정보 삭제 -->
+	<delete id="deleteLocation" parameterType="map">
+	    DELETE FROM WAREHOUSE_LOCATION
+	    WHERE
+	        LOC_CODE = #{LOC_CODE}
+	</delete>
+	
+	
+    
+</mapper>

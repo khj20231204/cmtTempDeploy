@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ProductMapper.java 경로로 클래스명 ProductMapper까지 입력 --> 
+<mapper namespace="com.example.cmtProject.mapper.mes.standardInfoMgt.BomInfoMapper">
+	
+	<select id="getBomInfoTotalList" resultType="com.example.cmtProject.dto.mes.standardInfoMgt.BomInfoTotalDTO">
+		SELECT 
+            -- BOM
+            BOM_NO
+            ,B.CHILD_ITEM_CODE
+            ,PARENT_PDT_CODE
+            ,ITEM_TYPE
+            ,BOM_QTY
+            ,BOM_UNIT
+            ,B.BOM_PRC_TYPE
+            ,BOM_DATE
+            ,COMMENTS
+            ,USE_YN
+            -- PRODUCTS
+            ,PDT_NAME
+            ,P.PRC_TYPE_CODE
+            ,PDT_SHIPPING_PRICE
+            ,PDT_USEYN
+            ,PR.MTL_TYPE_CODE
+            ,PDT_WEIGHT
+            ,WT_TYPE_CODE
+            ,PDT_SIZE
+            ,LT_TYPE_CODE
+            ,PDT_TYPE
+            ,PDT_SPECIFICATION
+            ,PDT_NO
+            ,PR.PDT_CODE
+            ,PDT_COMMENTS
+            -- MATERIALS
+            ,MTL_SUPP_CODE
+            ,MTL_NO
+            ,M.MTL_CODE
+            ,MTL_NAME
+            ,MTL_STANDARD
+            ,MTL_UNIT
+            ,MTL_BASE_PRICE
+            ,MTL_PRC_TYPE
+            ,MTL_CLT_CODE
+            ,M.MTL_TYPE_CODE
+            ,MTL_USE_YN
+            ,MTL_COMMENTS
+             -- PROCESS_INFO
+            ,PRC_NO
+            ,P.PRC_TYPE_CODE
+            ,PRC_TYPE_NAME
+            ,PRC_PRIORITY
+            ,CREATE_DATE
+            ,PRC_COMMENT
+		FROM BOM B 
+		LEFT JOIN PRODUCTS PR ON B.CHILD_ITEM_CODE = PR.PDT_CODE
+		LEFT JOIN MATERIALS M ON PR.MTL_TYPE_CODE = M.MTL_CODE
+		LEFT JOIN PROCESS_INFO P ON B.BOM_PRC_TYPE = P.PRC_TYPE_CODE
+	   WHERE B.CHILD_ITEM_CODE = #{pdtCode}
+		 AND B.USE_YN = 'Y'
+	   ORDER BY BOM_NO
+	</select>  
+	
+	<!-- 기준 정보에서 수정, MTL_NAME이 columnName이지만 실제 값은 MTL_CODE 값을 가져온다. 그리드의 셀렉트 부분 때문 -->
+    <update id="bomMainUpdate" parameterType="com.example.cmtProject.dto.mes.standardInfoMgt.BomEditDTO">
+    UPDATE BOM
+    <set>
+        <if test="columnName == 'BOM_QTY'">
+            BOM_QTY = CAST(#{value} AS NUMBER)
+        </if>
+        <if test="columnName == 'BOM_UNIT'">
+            BOM_UNIT = #{value}
+        </if>
+        <if test="columnName == 'COMMENTS'">
+            COMMENTS = #{value}
+        </if>
+        <if test="columnName == 'USE_YN'">
+            USE_YN = #{value}
+        </if>
+         <if test="columnName == 'BOM_PRC_TYPE'">
+            BOM_PRC_TYPE = #{value}
+        </if>
+    </set>
+    WHERE BOM_NO = #{BomNo}
+	</update>
+
+</mapper>

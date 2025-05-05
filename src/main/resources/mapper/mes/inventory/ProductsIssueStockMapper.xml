@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.mes.inventory.ProductsIssueStockMapper">
+
+    <!-- 출고별 재고 정보 저장 -->
+    <insert id="insertStock" parameterType="java.util.Map">
+        INSERT INTO PRODUCTS_ISSUE_STOCK (
+            ISSUE_STOCK_NO, 
+            ISSUE_NO,
+            PDT_CODE, 
+            ISSUED_QTY, 
+            ISSUE_DATE, 
+            LOT_NO, 
+            CREATED_BY, 
+            CREATED_DATE
+        ) VALUES (
+            SEQ_PRODUCTS_ISSUE_STOCK.NEXTVAL, 
+            #{issueNo},
+            #{pdtCode}, 
+            #{issuedQty}, 
+            #{issueDate}, 
+            #{lotNo}, 
+            #{createdBy}, 
+            SYSDATE
+        )
+    </insert>
+    
+    <!-- 제품코드별 출고 재고 목록 조회 (출고일 순) -->
+    <select id="getStocksByPdtCodeOrderByDate" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT 
+            ISSUE_STOCK_NO,
+            ISSUE_NO,
+            PDT_CODE,
+            ISSUED_QTY,
+            ISSUE_DATE,
+            LOT_NO
+        FROM 
+            PRODUCTS_ISSUE_STOCK
+        WHERE 
+            PDT_CODE = #{pdtCode}
+        ORDER BY 
+            ISSUE_DATE ASC, ISSUE_NO ASC
+    </select>
+    
+    <!-- FIFO 방식으로 제품 재고 관리를 위한 목록 조회 (날짜 오름차순) -->
+    <select id="getStocksForFIFO" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT
+            ISSUE_STOCK_NO,
+            ISSUE_NO,
+            PDT_CODE,
+            ISSUED_QTY,
+            ISSUE_DATE,
+            LOT_NO
+        FROM
+            PRODUCTS_ISSUE_STOCK
+        WHERE
+            PDT_CODE = #{pdtCode}
+        ORDER BY
+            ISSUE_DATE ASC, ISSUE_STOCK_NO ASC
+    </select>
+</mapper>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"> 
+<head>
+	
+	<style>
+		#auth-right {
+		    background-color: #445ebe !important;
+		}
+	</style>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	
+  
+	<link rel="stylesheet" href="assets/css/app.css">
+	<link rel="stylesheet" href="assets/css/app-dark.css">
+	<link rel="stylesheet" href="assets/static/css/pages/auth.css">
+	<link rel="stylesheet" href="assets/css/bootstrap.css">
+	<link rel="stylesheet" href="assets/vendors/bootstrap-icons/bootstrap-icons.css">
+
+	
+	
+
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMT</title>
+</head>
+<body>
+ 	
+    <!-- 
+        중요: layout:fragment="content"는 레이아웃 템플릿에 실제 페이지 내용이 삽입될 위치를 지정합니다.
+        이 부분 안에 페이지별 HTML 내용을 작성하세요.
+    -->
+    <div layout:fragment="content">
+    
+        <!-- 페이지 내용 작성 영역 시작 -->
+			
+			<!-- 여기에 HTML 뷰페이지 코드 작성하세요!!!!!!!!!!!!!!!!!!! -->
+	<script src="assets/static/js/initTheme.js"></script>
+    <div id="auth">
+        
+	<div class="row h-100">
+	    <div class="col-lg-5 col-12">
+	        <div id="auth-left">
+	            <div class="auth-logo">
+<!-- 	                <a href="index.html"><img src="./assets/compiled/svg/logo.svg" alt="Logo"></a> --> <!-- 로고 -->
+	            </div>
+	            <h1 class="auth-title">Log in.</h1>
+	            <p class="auth-subtitle mb-5">행운 가득한 하루 되세요 🍀🍀🍀</p>
+	
+	            <form action="login" method="post" onsubmit="return validityCheck()" id="loginForm">
+	                <div class="form-group position-relative has-icon-left mb-4">
+	                    <input type="text" class="form-control form-control-xl" placeholder="ID" id="empId" name="empId">
+	                    <div class="form-control-icon">
+	                        <i class="bi bi-person"></i>
+	                    </div>
+	                </div>
+	                <div class="form-group position-relative has-icon-left mb-4">
+	                    <input type="password" class="form-control form-control-xl" placeholder="Password" id="empPassword" name = "empPassword">
+	                    <div class="form-control-icon">
+	                        <i class="bi bi-shield-lock"></i>
+	                    </div>
+	                </div>
+	                <div class="form-check form-check-lg d-flex align-items-end">
+						<label>
+	                    	<input class="form-check-input me-2" type="checkbox" id="flexCheckDefault"> 아이디 기억하기
+					    </label>
+	                </div>
+	                <button class="btn btn-primary btn-block btn-lg shadow-lg mt-5">로그인</button>
+	                <button class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="userLogin">User 로그인</button>
+	                <button class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="managerLogin">Manager 로그인</button>
+	                <button class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="adminLogin">Admin 로그인</button>
+	            </form>
+	            
+	            <button class ="btn-primary"  onclick="findId()">아이디 찾기</button>
+	            <div class="text-center mt-5 text-lg fs-4">
+	<!--                 <p class="text-gray-600">Don't have an account? <a href="auth-register.html" class="font-bold">Sign -->
+	<!--                         up</a>.</p> -->
+	<!--                 <p><a class="font-bold" href="auth-forgot-password.html">Forgot password?</a>.</p> -->
+	            </div>
+	        </div>
+	    </div>
+	    <div class="col-lg-7 d-none d-lg-block">
+	        <div id="auth-right" style="background-color: #445ebe !important;">
+	
+	        </div>
+	    </div>
+	</div> <!-- 로그인 -->
+
+    </div>
+	</div>
+    
+    <!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->
+    <th:block layout:fragment="script">
+	   <script th:if="${msg != null}">
+		    alert('[[${msg}]]');
+		</script>
+		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script type="text/javascript">
+        
+        
+        function validityCheck(){
+    		
+    		let username = document.getElementById("empId").value;
+    		let pwd = document.getElementById("empPassword").value;
+    		
+    		if(username.trim() === "" || pwd.trim() === "")
+    		{
+    			 Swal.fire('아이디와 비밀번호를 입력해주세요.');
+//     			alert("아이디와 비밀번호를 입력해주세요.");
+    			return false;
+    		}
+    	}	
+			        
+			function submitLoginForm(id, pw) {
+				$('#empId').val(id);
+			    $('#empPassword').val(pw);
+			    $('#loginForm').submit();
+			}
+			    
+		        $('#userLogin').on('click', function() {
+					submitLoginForm('971114', '1234');
+				});
+				
+				$('#managerLogin').on('click', function() {
+					submitLoginForm('981114', '1234');
+				});
+				
+				$('#adminLogin').on('click', function() {
+					submitLoginForm('991114', '1234');
+				
+				});
+				
+				//아이디 찾기 window.open
+				function findId(){
+					const url = `/emp/findId`;
+					const options = "width=600,height=600,top=100,left=300,scrollbars=yes,resizable=yes";
+					
+					window.open(url, 'findId_', options);
+					
+				}
+				
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}"> 
+	<head>
+		<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+	    <link rel="stylesheet" href="https://uicdn.toast.com/tui.time-picker/latest/tui-time-picker.css" />
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	   
+		<script src="https://uicdn.toast.com/tui.time-picker/latest/tui-time-picker.min.js"></script>
+	    <script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.min.js"></script>
+		<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	    <title>근무 시간</title>
+
+<style>
+  .tui-datepicker {
+    z-index: 99999 !important;
+    position: absolute !important;
+  }
+</style>
+
+
+</head>
+
+
+<body>
+
+    <div layout:fragment="content">
+		
+		<br>
+<!--		<th:block th:each="soModel : ${soModel}">-->
+<!--			<div th:text="${soModel}"></div>-->
+<!--		</th:block>-->
+<!-- 그리드 top 시작 -->
+	<h3>근무 시간 조회 관리</h3>
+	   	
+		
+		
+		
+    	<!-- 전체 한 줄, 버튼 오른쪽 -->
+		<div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+		
+		  <!-- 왼쪽: 검색창 + 날짜 -->
+		  <div style="display: flex; align-items: center; gap: 10px;">
+		    <input type="text" id="searchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+		
+		    <button id="dateSearchBtn" class="btn btn-primary">검색</button>
+		  </div>
+		
+		  <!-- 오른쪽: 버튼 묶음 (이게 flex item이자 margin-left: auto 적용 대상!) -->
+		  <div class="btn-group-custom" style="margin-left: auto; display: flex; gap: 10px;">
+		      <button type="button" 
+		      		  class="btn btn-lg btn-primary block" 
+		      		  data-bs-toggle="modal"
+		      		  data-bs-target="#border-less"
+		      		  sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">직원 일정 등록</button>
+		      		  
+		      		  <div class="modal fade text-left modal-borderless" id="border-less" tabindex="-1" aria-labelledby="myModalLabel1">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h1 class="modal-title">직원 일정 등록</h1>
+                                        <button type="button" class="close rounded-pill">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                    
+                                    
+                                      <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="text" id="modalSearchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+                                        <button id="modalDateSearchBtn" class="btn btn-primary">검색</button>
+									  </div>
+									  
+                                      
+                                      
+                                      <br>
+                                        
+
+                                        
+                                        <div id="gridModal"></div>
+                                           
+                                        
+                                        
+                                        
+                                        
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-light-primary" data-bs-dismiss="modal">
+                                            <i class="bx bx-x d-block d-sm-none"></i>
+                                            <span class="d-none d-sm-block">닫기</span>
+                                        </button>
+                                        <button type="button" class="btn btn-primary ms-1" data-bs-dismiss="modal" onclick="regist()">
+                                            <i class="bx bx-check d-block d-sm-none"></i>
+                                            <span class="d-none d-sm-block">등록</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        
+                        
+
+                        
+                        <script th:inline="javascript">
+                        
+                        // 완전 자동 반영되게 하는 방법 (커스텀 select editor 등록)
+                        class InstantSelectEditor {
+                       	  constructor(props) {
+                       	    const el = document.createElement('select');
+                       	    el.style.height = '100%'
+                       	    el.style.width = '100%';  // ← 너비도 추가;
+
+                       	    props.columnInfo.editor.options.listItems.forEach(item => {
+                       	      const option = document.createElement('option');
+                       	      option.value = item.value;
+                       	      option.textContent = item.text;
+                       	      el.appendChild(option);
+                       	    });
+
+                       	    el.value = String(props.value ?? '');
+
+                       	    el.addEventListener('change', () => {
+                       	      props.grid.finishEditing(); // ✅ 선택되자마자 편집 종료
+                       	    });
+
+                       	    this.el = el;
+                       	  }
+
+                       	  getElement() {
+                       	    return this.el;
+                       	  }
+
+                       	  getValue() {
+                       	    return this.el.value;
+                       	  }
+
+                       	  mounted() {
+                       	    this.el.focus();
+                       	  }
+                       	}
+                        
+                        
+                        let gridModalInstance = null;
+
+                        document.addEventListener('DOMContentLoaded', function () {
+                          const modal = document.getElementById('border-less');
+
+                          modal.addEventListener('shown.bs.modal', function () {
+                        	  // 기존 그리드가 있으면 제거
+                        	  if (gridModalInstance) {
+                        	    gridModalInstance.destroy();
+                        	    gridModalInstance = null;
+                        	    document.getElementById('gridModal').innerHTML = ''; // DOM 클리어
+                        	  }
+                            
+                            
+                            const data1 = /*[[${modalList}]]*/ [];
+                            const workTypeCodeList = /*[[${commonCodeMap['WKT_TYPE']}]]*/ [];
+                            
+                         	// map codeName → code
+                            data1.forEach(emp => {
+                              const match = workTypeCodeList.find(code => code.cmnDetailName === emp.wktTypeName);
+                              if (match) {
+                                emp.wktType = match.cmnDetailCode;  // 예: 'WKT001'
+                              } else {
+                                emp.wktType = null;  // 기본값 설정 가능
+                              }
+                            });
+
+                            const mergedData = data1.concat(workTypeCodeList);
+                            
+                            const workTypeListItems = [
+                            	  ...workTypeCodeList.map(code => ({
+                            	    value: code.cmnDetailCode,
+                            	    text: code.cmnDetailName
+                            	  }))
+                            	];
+                            
+                            console.log(data1);
+                            gridModalInstance = new tui.Grid({
+				            el: document.getElementById('gridModal'),
+				            data: data1,
+				            scrollX: false,
+				            scrollY: false,
+				            rowKey: 'empNo',
+				            editingEvent: 'click',     // ✅ 클릭하면 바로 수정 모드
+				            autoEdit: true, 
+				            pageOptions: {
+				    	        useClient: true,  // 서버 사이드 페이징 활성화
+				    	        perPage: 10
+				    	    },
+				            columns: [
+				            	{ 
+				                  header: '사원번호', 
+				            	  name: 'empId', 
+				            	  sortable: true, 
+				            	  filter: 'text', 
+				            	  align: "center" 
+				            	},
+				            	{ 
+				                  header: '사원이름', 
+				              	  name: 'empName', 
+				              	  sortable: true, 
+				              	  filter: 'text', 
+				              	  align: "center" 
+				              	},
+				            	{ 
+				               	  header: '부서', 
+				               	  name: 'deptName', 
+				               	  sortable: true, 
+				               	  filter: 'text',
+				               	  align: "center",
+				             		formatter: function({ row }) {
+				 	           		  return row.deptName;
+				 	              }
+				            	},
+				              	{ 
+			             	      header: '기준근무유형', 
+			             		  name: 'wktType', 
+			             		  sortable: true, 
+			             		  filter: 'text',
+			             		  align: "center",
+			             		  editable: true,
+			             		  width: 200,
+				            	  editor: {
+				                    type: InstantSelectEditor,
+				                    options: {
+				                      listItems: workTypeListItems, 
+				                      useCommand: true
+				                    }
+				                  },
+				                  onAfterChange: function(ev) {
+				                	  gridModalInstance.finishEditing(); // ✅ 선택하고 나면 자동 포커스 아웃
+				               	  },
+				                  formatter: function({ value }) {
+				                      const found = workTypeListItems.find(item => item.value === value);
+				                      return found ? found.text : value;
+				                    }
+				              	}
+				              	],
+	                        
+                                });
+                            
+                            	gridModalInstance.on('afterChange', ev => {
+                            	  ev.changes.forEach(change => {
+                            	    const rowKey = change.rowKey;
+                            	    const row = gridModalInstance.getRow(rowKey);
+                            	    // 강제로 수정된 상태로 표시
+                            	    gridModalInstance.setRow(rowKey, {
+                            	      ...row,
+                            	      _modified: true
+                            	    });
+                            	    gridModalInstance.finishEditing();
+                            	  });
+                            	});
+                            	
+                            
+                            // grid 데이터 원본 저장
+                        	const modalData = gridModalInstance.getData();
+
+                        	document.getElementById('modalSearchInput').addEventListener('input', function (e) {
+                        	  const keyword = e.target.value.toLowerCase();
+
+                        	  // 원본 데이터를 기준으로 필터링
+                        	  const filtered = modalData.filter(row => {
+                        	    return Object.values(row).some(val => {
+                        	      if (val == null) return false;
+                        	      return String(val).toLowerCase().includes(keyword);
+                        	    });
+                        	  });
+
+                        	  // 필터링된 데이터로 그리드 업데이트
+                        	  gridModalInstance.resetData(filtered);
+                        	});
+                        	
+                        	
+                        	function modalApplyFilter() {
+                        		  const keyword = document.getElementById('modalSearchInput').value.toLowerCase();
+                        		  const start = document.getElementById('modalStartDate').value;
+                        		  const end = document.getElementById('modalEndDate').value;
+
+                        		  let filtered = modalData;
+
+                        		  if (start && end) {
+                        		    const startDate = new Date(start);
+                        		    const endDate = new Date(end);
+                        		    endDate.setHours(23, 59, 59, 999);
+
+                        		    filtered = filtered.filter(row => {
+                        		      const atdDate = new Date(row.atdDate);
+                        		      return atdDate >= startDate && atdDate <= endDate;
+                        		    });
+                        		  }
+
+                        		  if (keyword) {
+                        		    filtered = filtered.filter(row =>
+                        		      Object.values(row).some(val =>
+                        		        val != null && String(val).toLowerCase().includes(keyword)
+                        		      )
+                        		    );
+                        		  }
+
+                        		  gridModalInstance.resetData(filtered);
+                        		}
+
+                        		document.getElementById('modalDateSearchBtn').addEventListener('click', modalApplyFilter);
+                        		document.getElementById('modalSearchInput').addEventListener('input', modalApplyFilter);
+                        	
+                            
+                            
+	                          });
+	                        });
+			            	
+			            	</script>
+			            	
+			            	
+			            	
+			            	<script th:inline="javascript">	 // 등록 버튼
+			            	async function regist() {
+
+			            		const allData = gridModalInstance.getData();
+			            		const updatedRows = allData.filter(row => row._modified === true);
+			            		
+			            		const cleanedRows = updatedRows.map(row => ({
+			            			  empNo: row.empNo,
+			            			  wktType: row.wktType
+			            			}));
+			            	    
+			            	    console.log('🛠 수정된 데이터:', cleanedRows);
+
+			            	    
+			            	    if (cleanedRows.length === 0) {
+			            	      await Swal.fire({
+			            	        icon: 'warning',
+			            	        title: '수정된 데이터가 없습니다.',
+			            	      });
+			            	      return;
+			            	    }
+				
+					    		  try {
+					    		    const response = await fetch('/worktimes/updateWktType', {
+					    		      method: 'POST',
+					    		      headers: {
+					    		        'Content-Type': 'application/json'
+					    		      },
+					    		      body: JSON.stringify(cleanedRows)
+					    		    });
+				
+					    		    if (!response.ok) {
+					    		      throw new Error('서버 오류');
+					    		    }
+				
+					    		    await Swal.fire({
+					    		      icon: 'success',
+					    		      title: '근무유형이 성공적으로 저장되었습니다.'
+					    		    });
+				
+					    		    location.reload();
+				
+					    		  } catch (error) {
+					    		    console.error('Error:', error);
+					    		    await Swal.fire({
+					    		      icon: 'error',
+					    		      title: '저장 중 오류가 발생했습니다.'
+					    		    });
+					    		  }
+					    		}
+					    	</script>
+			            	
+			            	
+			            	
+                        
+                        
+                        </div>
+                        <button type="button" 
+		      		  class="btn btn-lg btn-primary block" 
+		      		  data-bs-toggle="modal"
+		      		  data-bs-target="#template"
+		      		  sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">근무 일정 관리</button>
+		      		  
+		      		  <div class="modal fade text-left modal-borderless" id="template" tabindex="-1" aria-labelledby="myModalLabel1">
+                            <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h1 class="modal-title">근무 일정 관리</h1>
+                                        <button type="button" class="close rounded-pill">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                    
+                                    
+                                      <div style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="text" id="modalSearchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+                                        <button id="modalDateSearchBtn" class="btn btn-primary">검색</button>
+									  </div>
+									  
+                                      
+                                      
+                                      <br>
+                                        
+
+                                        
+                                        <div id="gridModalTemplate"></div>
+                                                                
+				                        <script type="text/javascript">
+										  function addNewRow() {
+										    // 현재 grid의 데이터에서 최대 wtNo를 찾음
+										    const currentData = gridModalInstanceTemplate.getData();
+										    const maxNo = currentData.length > 0 
+										      ? Math.max(...currentData.map(row => row.wtNo || 0)) 
+										      : 0;
+										
+										    const newWtNo = maxNo + 1;
+										
+										    // 새 행 추가
+										    gridModalInstanceTemplate.prependRow({
+										      wtNo: newWtNo,
+										      wtName: '',
+										      wtStartTime: '',
+										      wtEndTime: '',
+										      wtWorkTime: '',
+										      wtType: ''
+										    });
+										
+										    // 새로 추가한 행 index
+										    const lastIndex = gridModalInstanceTemplate.getRowCount() - 1;
+										
+										    // 포커스 및 편집 시작
+										    gridModalInstanceTemplate.focusAt(lastIndex, 'wtName');
+										    gridModalInstanceTemplate.startEditing(lastIndex, 'wtName');
+										  }
+										</script>
+                        
+                                           
+                                        
+                                        
+                                        
+                                        
+                                    </div>
+                                    
+                                    <div class="modal-footer">
+                                    	<button class="btn btn-success" onclick="addNewRow()">
+                                    	<i class="bx bx-check d-block d-sm-none"></i>
+                                    	<span class="d-none d-sm-block">추가</span>
+                                    	</button>
+                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="deleteTemplateRows()">
+                                            <i class="bx bx-x d-block d-sm-none"></i>
+                                            <span class="d-none d-sm-block">삭제</span>
+                                        </button>
+                                        <button type="button" class="btn btn-primary ms-1" data-bs-dismiss="modal" onclick="registTemplate()">
+                                            <i class="bx bx-check d-block d-sm-none"></i>
+                                            <span class="d-none d-sm-block">저장</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        
+                        
+
+                        
+                        
+                        
+                        <script th:inline="javascript">
+                        
+                        class TimePickerEditor {
+                        	  constructor(props) {
+                        	    const container = document.createElement('div');
+                        	    container.style.position = 'relative';
+                        	    container.style.zIndex = '9999';
+
+                        	    const input = document.createElement('input');
+                        	    input.type = 'text';
+                        	    input.style.width = '100%';
+                        	    container.appendChild(input);
+
+                        	    // 시간 선택기 초기화
+                        	    this.picker = new tui.TimePicker(container, {
+                        	      inputType: 'spinbox',
+                        	      initialHour: 9,
+                        	      initialMinute: 0,
+                        	      format: 'HH:mm'
+                        	    });
+
+                        	    // 값 세팅
+                        	    if (props.value) {
+                        	      const [hour, minute] = props.value.split(':');
+                        	      this.picker.setHour(parseInt(hour));
+                        	      this.picker.setMinute(parseInt(minute));
+                        	    }
+
+                        	    this.el = container;
+                        	  }
+
+                        	  getElement() {
+                        	    return this.el;
+                        	  }
+
+                        	  getValue() {
+                        	    return `${this.picker.getHour().toString().padStart(2, '0')}:${this.picker.getMinute().toString().padStart(2, '0')}`;
+                        	  }
+
+                        	  mounted() {
+                        	    this.picker.getElement().querySelector('input').focus();
+                        	  }
+                        	}
+                        
+                        let gridModalInstanceTemplate = null;
+
+                        document.addEventListener('DOMContentLoaded', function () {
+                          const modal = document.getElementById('template');
+
+                          modal.addEventListener('shown.bs.modal', function () {
+                        	  // 기존 그리드가 있으면 제거
+                        	  if (gridModalInstanceTemplate) {
+                        	    gridModalInstanceTemplate.destroy();
+                        	    gridModalInstanceTemplate = null;
+                        	    document.getElementById('gridModalTemplate').innerHTML = ''; // DOM 클리어
+                        	  }
+                            
+                            
+                            const data1 = /*[[${templateList}]]*/ [];
+                            const workTypeCodeList = /*[[${commonCodeMap['WKT_TYPE']}]]*/ [];
+                            
+                         	// map codeName → code
+                            data1.forEach(emp => {
+                              const match = workTypeCodeList.find(code => code.cmnDetailName === emp.wktTypeName);
+                              if (match) {
+                                emp.wktType = match.cmnDetailCode;  // 예: 'WKT001'
+                              } else {
+                                emp.wktType = null;  // 기본값 설정 가능
+                              }
+                            });
+
+                            const mergedData = data1.concat(workTypeCodeList);
+                            
+                            const workTypeListItems = [
+                            	  ...workTypeCodeList.map(code => ({
+                            	    value: code.cmnDetailCode,
+                            	    text: code.cmnDetailName
+                            	  }))
+                            	];
+                            
+                            console.log(mergedData);
+                            
+                            gridModalInstanceTemplate = new tui.Grid({
+				            el: document.getElementById('gridModalTemplate'),
+				            data: data1,
+				            rowHeaders: ['checkbox'],
+				            scrollX: false,
+				            scrollY: false,
+				            rowKey: 'wtNo',
+				            editingEvent: 'click',     // ✅ 클릭하면 바로 수정 모드
+				            autoEdit: true, 
+				            pageOptions: {
+				    	        useClient: true,  // 서버 사이드 페이징 활성화
+				    	        perPage: 10
+				    	    },
+				            columns: [
+				            	{ 
+				                  header: 'NO', 
+				            	  name: 'wtNo', 
+				            	  sortable: true, 
+				            	  filter: 'text', 
+				            	  align: "center",
+				            	  hidden: true
+				            	},
+				            	{ 
+				                  header: '근무 일정 이름', 
+				              	  name: 'wtName', 
+				              	  sortable: true, 
+				              	  filter: 'text', 
+				              	  align: "center",
+				              	  editable: true,
+				              	  editor: 'text',
+				              	  hidden: true
+				              	},
+				              	{
+				              	  header: '출근 시간',
+				              	  name: 'wtStartTime',
+				              	  align: 'center',
+				              	  editable: true,
+				              	  editor: {
+				              	    type: TimePickerEditor
+				              	 },
+				              	  formatter: function({ value }) {
+				              	    if (!value) return '';
+				              	    return value;
+				              	 }
+				              	},
+				              	{
+				              	  header: '퇴근 시간',
+				              	  name: 'wtEndTime',
+				              	  align: 'center',
+				              	  editable: true,
+				              	  editor: {
+				              	    type: TimePickerEditor
+				              	 },
+				              	  formatter: function({ value }) {
+					              	    if (!value) return '';
+					              	    return value;
+					              	 }
+				              	},
+				              	{
+				              	  header: '근로 시간',
+				              	  name: 'wtWorkTime',
+				              	  sortable: true, 
+				              	  filter: 'text', 
+				              	  align: "center",
+				              	  editable: true,
+				              	  editor: 'text'
+				            	},
+				              	{ 
+			             	      header: '기준근무유형', 
+			             		  name: 'wtType', 
+			             		  sortable: true, 
+			             		  filter: 'text',
+			             		  align: "center",
+			             		  editable: true,
+				            	  editor: {
+				                    type: InstantSelectEditor,
+				                    options: {
+				                      listItems: workTypeListItems, 
+				                      useCommand: true
+				                    }
+				                  },
+				                  onAfterChange: function(ev) {
+				                	  gridModalInstanceTemplate.finishEditing(); // ✅ 선택하고 나면 자동 포커스 아웃
+				               	  },
+				                  formatter: function({ value }) {
+				                      const found = workTypeListItems.find(item => item.value === value);
+				                      return found ? found.text : value;
+				                    }
+				              	}
+				              	],
+	                        
+                                });
+                            
+                            gridModalInstanceTemplate.on('afterChange', (ev) => {
+                            	  ev.changes.forEach(change => {
+                            	    const rowKey = change.rowKey;
+                            	    const row = gridModalInstanceTemplate.getRow(rowKey);
+                            	    const start = row.wtStartTime;
+                            	    const end = row.wtEndTime;
+
+                            	    if (start && end && start.includes(':') && end.includes(':')) {
+                            	      const [sh, sm] = start.split(':').map(Number);
+                            	      const [eh, em] = end.split(':').map(Number);
+
+                            	      const startDate = new Date(0, 0, 0, sh, sm);
+                            	      const endDate = new Date(0, 0, 0, eh, em);
+
+                            	      let diffMinutes = (endDate - startDate) / 60000; // 분 단위
+                            	      if (diffMinutes < 0) diffMinutes += 24 * 60; // 자정 넘어가는 경우
+
+                            	      const workedHours = diffMinutes / 60;
+
+                            	      // 👇 실시간 반영
+                            	      gridModalInstanceTemplate.setValue(rowKey, 'wtWorkTime', workedHours);
+									  
+                            	      // 행을 수정된 상태로 표시
+                            	      gridModalInstanceTemplate.setRow(rowKey, {
+                            	        ...row,
+                            	        _modified: true
+                            	      });
+                            	    }
+                            	  });
+                            	});
+                            
+                            
+                            // 행 아무곳이나 클릭하면 체크박스 활성화
+                    	    gridModalInstanceTemplate.on('click', ev => {
+                    	    	  const rowKey = ev.rowKey;
+                    	    	  const isChecked = gridModalInstanceTemplate.getCheckedRowKeys().includes(rowKey);
+                    	    	  if (!isChecked) {
+                    	    		  gridModalInstanceTemplate.check(rowKey);
+                    	    	  } else {
+                    	    		  gridModalInstanceTemplate.uncheck(rowKey);
+                    	    	  }
+                    	    	});
+                    	    
+                            /* 이벤트 리스너 추가 */
+                            gridModalInstanceTemplate.on('check', ev => {
+                                console.log('체크됨!', ev);
+                            });
+
+                            gridModalInstanceTemplate.on('uncheck', ev => {
+                                console.log('체크 해제됨!', ev);
+                            });
+
+                            gridModalInstanceTemplate.on('focusChange', ev => {
+                                console.log('포커스 변경됨!', ev);
+                            });
+                            
+                            // grid 데이터 원본 저장
+                        	const modalData = gridModalInstanceTemplate.getData();
+
+                        	document.getElementById('modalSearchInput').addEventListener('input', function (e) {
+                        	  const keyword = e.target.value.toLowerCase();
+
+                        	  // 원본 데이터를 기준으로 필터링
+                        	  const filtered = modalData.filter(row => {
+                        	    return Object.values(row).some(val => {
+                        	      if (val == null) return false;
+                        	      return String(val).toLowerCase().includes(keyword);
+                        	    });
+                        	  });
+
+                        	  // 필터링된 데이터로 그리드 업데이트
+                        	  gridModalInstanceTemplate.resetData(filtered);
+                        	});
+                        	
+                        	
+                        	function modalApplyFilter() {
+                        		  const keyword = document.getElementById('modalSearchInput').value.toLowerCase();
+                        		  const start = document.getElementById('modalStartDate').value;
+                        		  const end = document.getElementById('modalEndDate').value;
+
+                        		  let filtered = modalData;
+
+                        		  if (start && end) {
+                        		    const startDate = new Date(start);
+                        		    const endDate = new Date(end);
+                        		    endDate.setHours(23, 59, 59, 999);
+
+                        		    filtered = filtered.filter(row => {
+                        		      const atdDate = new Date(row.atdDate);
+                        		      return atdDate >= startDate && atdDate <= endDate;
+                        		    });
+                        		  }
+
+                        		  if (keyword) {
+                        		    filtered = filtered.filter(row =>
+                        		      Object.values(row).some(val =>
+                        		        val != null && String(val).toLowerCase().includes(keyword)
+                        		      )
+                        		    );
+                        		  }
+
+                        		  gridModalInstanceTemplate.resetData(filtered);
+                        		}
+
+                        		document.getElementById('modalDateSearchBtn').addEventListener('click', modalApplyFilter);
+                        		document.getElementById('modalSearchInput').addEventListener('input', modalApplyFilter);
+                        	
+                            
+                            
+	                          });
+	                        });
+                        
+                        
+
+			            	
+			            	</script>
+			            	
+			            	
+			            	
+			            	<script th:inline="javascript">	 // 등록 버튼
+			            	async function registTemplate() {
+
+			            		const allData = gridModalInstanceTemplate.getData();
+			            		const updatedRows = allData.filter(row => row._modified === true);
+			            		
+			            		const cleanedRows = updatedRows.map(row => ({
+			            			  empNo: row.empNo,
+			            			  wktType: row.wktType
+			            			}));
+			            	    
+			            	    console.log('🛠 수정된 데이터:', cleanedRows);
+
+			            	    
+			            	    if (cleanedRows.length === 0) {
+			            	      await Swal.fire({
+			            	        icon: 'warning',
+			            	        title: '수정된 데이터가 없습니다.',
+			            	      });
+			            	      return;
+			            	    }
+				
+					    		  try {
+					    		    const response = await fetch('/worktimes/updateWktType', {
+					    		      method: 'POST',
+					    		      headers: {
+					    		        'Content-Type': 'application/json'
+					    		      },
+					    		      body: JSON.stringify(cleanedRows)
+					    		    });
+				
+					    		    if (!response.ok) {
+					    		      throw new Error('서버 오류');
+					    		    }
+				
+					    		    await Swal.fire({
+					    		      icon: 'success',
+					    		      title: '근무유형이 성공적으로 저장되었습니다.'
+					    		    });
+				
+					    		    location.reload();
+				
+					    		  } catch (error) {
+					    		    console.error('Error:', error);
+					    		    await Swal.fire({
+					    		      icon: 'error',
+					    		      title: '저장 중 오류가 발생했습니다.'
+					    		    });
+					    		  }
+					    		}
+					    	</script>
+					    	
+					    	<script th:inline="javascript">
+							  async function deleteTemplateRows() {
+							    const checkedRows = gridModalInstanceTemplate.getCheckedRows();
+							    const ids = checkedRows.map(row => row.wtNo);
+							
+							    if (ids.length === 0) {
+							      await Swal.fire({
+							        icon: "warning",
+							        title: "삭제할 데이터를 선택해주세요."
+							      });
+							      return;
+							    }
+							
+							    const result = await Swal.fire({
+							      title: "정말 삭제하시겠습니까?",
+							      text: `총 ${ids.length}건의 데이터를 삭제합니다.`,
+							      icon: "warning",
+							      showDenyButton: true,
+							      confirmButtonText: "삭제",
+							      denyButtonText: "취소",
+							    });
+							
+							    if (result.isDenied) return;
+							
+							    try {
+							      const response = await fetch('/worktimes/template/delete', {
+							        method: 'POST',
+							        headers: {
+							          'Content-Type': 'application/json'
+							        },
+							        body: JSON.stringify(ids)
+							      });
+							
+							      if (!response.ok) throw new Error('서버 오류');
+							
+							      await Swal.fire({
+							        icon: 'success',
+							        title: '삭제가 완료되었습니다.'
+							      });
+							
+							      location.reload();
+							
+							    } catch (err) {
+							      console.error(err);
+							      await Swal.fire({
+							        icon: 'error',
+							        title: '삭제 중 오류가 발생했습니다.'
+							      });
+							    }
+							  }
+							</script>
+							
+							<script th:inline="javascript">
+							  async function registTemplate() {
+							    const allData = gridModalInstanceTemplate.getData();
+							
+							    // 필요한 데이터만 추출
+							     const cleanedRows = allData
+							    .filter(row => row._modified === true) // 🔥 수정된 것만
+							    .map(row => ({
+							      wtName: row.wtName,
+							      wtStartTime: row.wtStartTime,
+							      wtEndTime: row.wtEndTime,
+							      wtWorkTime: row.wtWorkTime,
+							      wtType: row.wtType
+							    }));
+							
+							    // 유효성 검사 등 추가 가능
+							    if (cleanedRows.length === 0) {
+							      await Swal.fire({
+							        icon: 'warning',
+							        title: '저장할 데이터가 없습니다.'
+							      });
+							      return;
+							    }
+							
+							    try {
+							      const response = await fetch('/worktimes/template/save', {
+							        method: 'POST',
+							        headers: {
+							          'Content-Type': 'application/json'
+							        },
+							        body: JSON.stringify(cleanedRows)
+							      });
+							
+							      if (!response.ok) throw new Error('서버 오류');
+							
+							      await Swal.fire({
+							        icon: 'success',
+							        title: '저장되었습니다.'
+							      });
+							
+							      location.reload();
+							
+							    } catch (err) {
+							      console.error(err);
+							      await Swal.fire({
+							        icon: 'error',
+							        title: '저장 중 오류가 발생했습니다.'
+							      });
+							    }
+							  }
+							</script>
+							
+					    	
+					    	
+					    	</div>
+                        
+                        
+                        
+
+		    <button type="button" 
+		            class="btn btn-lg btn-danger" 
+		            onclick="deleteWorkTimes()" 
+		            sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">삭제</button>
+			  
+			
+			  </div>
+			</div>
+
+		<br>
+
+		
+    	<div id="gridTop"></div>
+    	
+    
+
+	    <script th:inline="javascript">
+	    const grid = new tui.Grid({
+            el: document.getElementById('gridTop'),
+            data: /*[[${workTimeList}]]*/ [],
+            rowHeaders: ['checkbox'],
+            scrollX: false,
+            scrollY: false,
+            pageOptions: {
+    	        useClient: true,  // 서버 사이드 페이징 활성화
+    	        perPage: 20
+    	    },
+            columns: [
+            	{ 
+                  header: 'NO', 
+            	  name: 'wktNo', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 150,
+            	  align: "center",
+            	  hidden: true
+            	},
+            	{ 
+                  header: '사원번호', 
+            	  name: 'empId', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 150,
+            	  align: "center" 
+            	},
+            	{ 
+                  header: '사원이름', 
+              	  name: 'empName', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  width: 150,
+              	  align: "center" 
+              	},
+            	{ 
+               	  header: '부서', 
+               	  name: 'deptName', 
+               	  sortable: true, 
+               	  filter: 'text',
+               	  width: 150,
+               	  align: "center",
+             		formatter: function({ row }) {
+ 	           		  return row.deptName;
+ 	           		}
+            	},
+            	{ 
+            	  header: '출근시간', 
+            	  name: 'wtStartTime', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 300,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+
+		           		const hours = String(date.getHours()).padStart(2, '0');
+		           	    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${hours}시 ${minutes}분`;
+	           		}
+           		},
+            	{ 
+            	  header: '퇴근시간', 
+            	  name: 'wtEndTime', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 300,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+	
+	           		    const hours = String(date.getHours()).padStart(2, '0');
+	           		    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${hours}시 ${minutes}분`;
+	           		}
+           		},
+            	{ 
+           	      header: '기준근무유형', 
+           		  name: 'wktTypeName', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  align: "center",
+           			formatter: function({ row }) {
+	           		  return row.wktTypeName;
+	           		}
+            	}
+            ],
+            
+            
+            
+
+              
+          });
+	    
+	    
+	    // 행 아무곳이나 클릭하면 체크박스 활성화
+	    grid.on('click', ev => {
+	    	  const rowKey = ev.rowKey;
+	    	  const isChecked = grid.getCheckedRowKeys().includes(rowKey);
+	    	  if (!isChecked) {
+	    	    grid.check(rowKey);
+	    	  } else {
+	    	    grid.uncheck(rowKey);
+	    	  }
+	    	});
+	    
+        /* 이벤트 리스너 추가 */
+        grid.on('check', ev => {
+            console.log('체크됨!', ev);
+        });
+
+        grid.on('uncheck', ev => {
+            console.log('체크 해제됨!', ev);
+        });
+
+        grid.on('focusChange', ev => {
+            console.log('포커스 변경됨!', ev);
+        });
+        
+
+        
+	    </script>
+	    <!-- 그리드 끝 -->
+	    <script th:inline="javascript">	    
+	    	async function deleteWorkTimes() {
+	    		  const checkedRows = grid.getCheckedRows();
+	    		  const ids = checkedRows.map(row => row.wktNo);
+
+	    		  if (ids.length === 0) {
+	    		    await Swal.fire({
+	    		      icon: "warning",
+	    		      title: "삭제할 데이터를 선택해주세요."
+	    		    });
+	    		    return;
+	    		  }
+
+	    		  const result = await Swal.fire({
+	    		    title: "정말 삭제하시겠습니까?",
+	    		    text: `총 ${ids.length}건의 데이터를 삭제합니다.`,
+	    		    icon: "warning",
+	    		    showDenyButton: true,
+	    		    confirmButtonText: "삭제",
+	    		    denyButtonText: "취소",
+	    		  });
+
+	    		  if (result.isDenied) {
+	    		    await Swal.fire({
+	    		      icon: "error",
+	    		      title: "삭제가 취소되었습니다.",
+	    		    });
+	    		    return;
+	    		  }
+
+	    		  // 삭제 API 요청
+	    		  try {
+	    		    const response = await fetch('/worktimes/delete', {
+	    		      method: 'POST',
+	    		      headers: {
+	    		        'Content-Type': 'application/json'
+	    		      },
+	    		      body: JSON.stringify({ ids: ids }) // 필요 시 선택한 ID 전달
+	    		    });
+
+	    		    if (!response.ok) {
+	    		      await Swal.fire({
+	    		        icon: "error",
+	    		        title: "삭제 처리 중 서버 오류가 발생했습니다",
+	    		      });
+	    		      throw new Error("삭제 처리 중 서버 오류");
+	    		    }
+
+	    		    await Swal.fire({
+	    		      title: "삭제가 완료되었습니다",
+	    		      icon: "success",
+	    		    });
+	    		    
+	    		      location.reload();
+
+	    		  } catch (error) {
+	    		    console.error('Error:', error);
+	    		    await Swal.fire({
+	    		      icon: "error",
+	    		      title: "삭제 처리 중 예외가 발생했습니다",
+	    		    });
+	    		  }
+	    		}
+	    	</script>
+	    	
+
+
+	    	
+	    	<script th:inline="javascript">	 
+	    	// grid 데이터 원본 저장
+	    	const originalData = grid.getData();
+
+	    	document.getElementById('searchInput').addEventListener('input', function (e) {
+	    	  const keyword = e.target.value.toLowerCase();
+
+	    	  // 원본 데이터를 기준으로 필터링
+	    	  const filtered = originalData.filter(row => {
+	    	    return Object.values(row).some(val => {
+	    	      if (val == null) return false;
+	    	      return String(val).toLowerCase().includes(keyword);
+	    	    });
+	    	  });
+
+	    	  // 필터링된 데이터로 그리드 업데이트
+	    	  grid.resetData(filtered);
+	    	});
+	    	
+	    	
+	    	function applyFilter() {
+	    		  const keyword = document.getElementById('searchInput').value.toLowerCase();
+	    		  const start = document.getElementById('startDate').value;
+	    		  const end = document.getElementById('endDate').value;
+
+	    		  let filtered = originalData;
+
+	    		  if (start && end) {
+	    		    const startDate = new Date(start);
+	    		    const endDate = new Date(end);
+	    		    endDate.setHours(23, 59, 59, 999);
+
+	    		    filtered = filtered.filter(row => {
+	    		      const attendDate = new Date(row.attendDate);
+	    		      return attendDate >= startDate && attendDate <= endDate;
+	    		    });
+	    		  }
+
+	    		  if (keyword) {
+	    		    filtered = filtered.filter(row =>
+	    		      Object.values(row).some(val =>
+	    		        val != null && String(val).toLowerCase().includes(keyword)
+	    		      )
+	    		    );
+	    		  }
+
+	    		  grid.resetData(filtered);
+	    		}
+
+	    		document.getElementById('dateSearchBtn').addEventListener('click', applyFilter);
+	    		document.getElementById('searchInput').addEventListener('input', applyFilter);
+	    	
+		</script> 
+		
+		
+
+
+		
+	
+		
+		
+		
+		
+    </div>
+   	
+	<th:block layout:fragment="script">
+	    
+	</th:block>
+</body>
+
+</html>

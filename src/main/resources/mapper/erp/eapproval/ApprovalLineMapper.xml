@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.cmtProject.mapper.erp.eapproval.ApprovalLineMapper">
+
+    <!-- 결재선 저장 -->
+    <insert id="insertApprovalLine" parameterType="com.example.cmtProject.dto.erp.eapproval.ApprovalLineDTO">
+        INSERT INTO APPROVAL_LINES (
+            APPROVAL_NO, 
+            DOC_ID, 
+            APPROVER_ID, <!-- APPROVER_NO -> APPROVER_ID로 변경 -->
+            APPROVAL_ORDER, 
+            APPROVAL_STATUS, 
+            APPROVAL_TYPE
+        ) VALUES (
+            (SELECT NVL(MAX(APPROVAL_NO), 0) + 1 FROM APPROVAL_LINES), 
+            #{docId, jdbcType=VARCHAR}, 
+            #{approverId, jdbcType=VARCHAR}, <!-- approverNo -> approverId로 변경 -->
+            #{approvalOrder}, 
+            #{approvalStatus}, 
+            #{approvalType}
+        )
+    </insert>
+    
+    <!-- 결재선 일괄 저장 -->
+    <insert id="insertApprovalLines" parameterType="java.util.List">
+        <foreach collection="list" item="item" separator=" " open="INSERT ALL" close="SELECT * FROM DUAL">
+            INTO APPROVAL_LINES (
+                APPROVAL_NO, 
+                DOC_ID, 
+                APPROVER_ID, <!-- APPROVER_NO -> APPROVER_ID로 변경 -->
+                APPROVAL_ORDER, 
+                APPROVAL_STATUS, 
+                APPROVAL_TYPE
+            ) VALUES (
+                (SELECT NVL(MAX(APPROVAL_NO), 0) + 1 FROM APPROVAL_LINES), 
+                #{item.docId, jdbcType=VARCHAR}, 
+                #{item.approverId, jdbcType=VARCHAR}, <!-- approverNo -> approverId로 변경 -->
+                #{item.approvalOrder}, 
+                #{item.approvalStatus}, 
+                #{item.approvalType}
+            )
+        </foreach>
+    </insert>
+    
+    <!-- 결재선 수정 -->
+    <update id="updateApprovalLine" parameterType="com.example.cmtProject.dto.erp.eapproval.ApprovalLineDTO">
+        UPDATE APPROVAL_LINES 
+        SET 
+            APPROVAL_STATUS = #{approvalStatus}, 
+            APPROVAL_DATE = #{approvalDate}, 
+            APPROVAL_COMMENT = #{approvalComment} 
+        WHERE APPROVAL_NO = #{approvalNo}
+    </update>
+    
+	<!-- 문서ID로 결재선 조회 -->
+	<select id="selectApprovalLinesByDocId" resultMap="approvalLineResultMap">
+	    SELECT 
+	        al.APPROVAL_NO, 
+	        al.DOC_ID, 
+	        al.APPROVER_ID, 
+	        e.EMP_NAME as APPROVER_NAME, 
+	        p.CMN_DETAIL_NAME as APPROVER_POSITION, 
+	        al.APPROVAL_ORDER, 
+	        al.APPROVAL_STATUS, 
+	        al.APPROVAL_DATE, 
+	        al.APPROVAL_COMMENT, 
+	        al.APPROVAL_TYPE 
+	    FROM APPROVAL_LINES al 
+	    LEFT JOIN EMPLOYEES e ON al.APPROVER_ID = e.EMP_ID 
+	    LEFT JOIN COMMONCODE_DETAIL p ON p.CMN_CODE = 'POSITION' AND TO_CHAR(e.POSITION_NO) = p.CMN_DETAIL_CODE 
+	    WHERE al.DOC_ID = #{docId, jdbcType=VARCHAR} 
+	    ORDER BY al.APPROVAL_ORDER
+	</select>
+    
+    <!-- 특정 결재자의 특정 문서 결재선 조회 -->
+    <select id="selectApprovalLineByDocIdAndApproverId" resultMap="approvalLineResultMap">
+        SELECT 
+            APPROVAL_NO, 
+            DOC_ID, 
+            APPROVER_ID, <!-- APPROVER_NO -> APPROVER_ID로 변경 -->
+            APPROVAL_ORDER, 
+            APPROVAL_STATUS, 
+            APPROVAL_DATE, 
+            APPROVAL_COMMENT, 
+            APPROVAL_TYPE 
+        FROM APPROVAL_LINES 
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR} 
+        AND APPROVER_ID = #{approverId, jdbcType=VARCHAR} <!-- approverNo -> approverId로 변경 -->
+    </select>
+    
+    <!-- 문서의 다음 결재자 조회 (대기 상태인 결재선 조회) -->
+    <select id="selectNextApproversByDocId" resultMap="approvalLineResultMap">
+        SELECT 
+            APPROVAL_NO, 
+            DOC_ID, 
+            APPROVER_ID, <!-- APPROVER_NO -> APPROVER_ID로 변경 -->
+            APPROVAL_ORDER, 
+            APPROVAL_STATUS, 
+            APPROVAL_DATE, 
+            APPROVAL_COMMENT, 
+            APPROVAL_TYPE 
+        FROM APPROVAL_LINES 
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR} 
+        AND APPROVAL_STATUS = '대기' 
+        ORDER BY APPROVAL_ORDER
+    </select>
+    
+    <!-- 문서의 결재선 삭제 -->
+    <delete id="deleteApprovalLinesByDocId">
+        DELETE FROM APPROVAL_LINES
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR}
+    </delete>
+    
+    <!-- Result Map -->
+    <resultMap id="approvalLineResultMap" type="com.example.cmtProject.dto.erp.eapproval.ApprovalLineDTO">
+        <id property="approvalNo" column="APPROVAL_NO"/>
+        <result property="docId" column="DOC_ID"/>
+        <result property="approverId" column="APPROVER_ID"/> <!-- approverNo -> approverId로 변경 -->
+        <result property="approverName" column="APPROVER_NAME"/>
+        <result property="approverPosition" column="APPROVER_POSITION"/>
+        <result property="approvalOrder" column="APPROVAL_ORDER"/>
+        <result property="approvalStatus" column="APPROVAL_STATUS"/>
+        <result property="approvalDate" column="APPROVAL_DATE"/>
+        <result property="approvalComment" column="APPROVAL_COMMENT"/>
+        <result property="approvalType" column="APPROVAL_TYPE"/>
+    </resultMap>
+</mapper>

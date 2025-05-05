@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}"> 
+	<head>
+		<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+	    <link rel="stylesheet" href="https://uicdn.toast.com/chart/latest/toastui-chart.min.css" />
+		<script src="https://uicdn.toast.com/chart/latest/toastui-chart.min.js"></script>
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    
+	    <!-- xlsx.js (필수 의존성) -->
+		<!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>-->
+		<!-- 최신 xlsx 스크립트 CDN -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	   
+	    <title>입고 검사</title>
+
+<style>
+  .tui-datepicker {
+    z-index: 99999 !important;
+    position: absolute !important;
+  }
+</style>
+
+<style>
+	.btn-upload { background-color: #007bff; color: white; }
+	.btn-download { background-color: #28a745; color: white; } 
+	.chart-wrapper {
+	  display: flex;
+	  gap: 20px; /* ✅ 두 chart 사이에 20px 간격 */
+	}
+	
+	#chart-area, #chart-area2 {
+	  flex: 1; /* ✅ 너비 균등 분할 (원하면 빼도 됨) */
+	}
+	.chart-wrapper {
+	  display: flex;
+	  justify-content: center;
+	  gap: 20px;
+	}
+</style>	
+
+
+
+
+</head>
+
+
+<body>
+
+    <div layout:fragment="content">
+		
+		<br>
+<!--		<th:block th:each="soModel : ${soModel}">-->
+<!--			<div th:text="${soModel}"></div>-->
+<!--		</th:block>-->
+<!-- 그리드 top 시작 -->
+	<h3>입고 검사 목록</h3>
+	
+	
+
+<div class="chart-wrapper">
+  <div id="chart-area"></div>
+  <div id="chart-area2"></div>
+</div>
+<br>
+	
+	
+	
+	
+<!-- 전체 한 줄 정렬 -->
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%">
+
+  <!-- 왼쪽: 검색 + 파일 + 엑셀 -->
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <input type="text" id="searchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+    
+    <label for="startDate">시작일:</label>
+	    <div style="position: relative;">
+	      <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+	        <input type="text" id="startDate" aria-label="Start Date">
+	        <span class="tui-ico-date"></span>
+	      </div> 
+	      <div id="startDateWrapper" style="margin-top: -1px;"></div>
+	    </div>
+	
+	    <label for="endDate">종료일:</label>
+	    <div style="position: relative;">
+	      <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+	        <input type="text" id="endDate" aria-label="End Date">
+	        <span class="tui-ico-date"></span>
+	      </div>
+	      <div id="endDateWrapper" style="margin-top: -1px;"></div>
+	    </div>
+    
+    <button id="dateSearchBtn" class="btn btn-primary">검색</button>
+
+    <!-- 파일 업로드 -->
+    <input type="file" id="fileUpload" hidden>
+    <input type="file" class="form-control" id="fileInput" accept=".xlsx" style="width: 300px;">
+
+    <button class="btn btn-upload" id="ExcelUpBtn">엑셀 업로드</button>
+    <button class="btn btn-download" id="ExcelDownBtn">엑셀 다운로드</button>
+  </div>
+
+  <!-- 오른쪽: 등록/삭제 -->
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <button type="button" class="btn btn-outline-danger" onclick="deleteIqc()" sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">삭제</button>
+  </div>
+
+</div>
+
+<br>
+
+
+	
+	
+	
+	<div id="gridTop"></div>
+	
+	
+	<!-- 상세 정보 영역 -->
+	<div id="iqcDetailWrapper" style="margin-top: 20px; border: 1px solid #ddd; padding: 15px;">
+	  <h3>상세 정보</h3>
+	  <div id="iqcDetailContent">입고 검사항목을 선택하면 상세 정보가 여기에 표시됩니다.</div>
+	</div>
+	
+	
+	
+	
+	
+	
+	
+
+
+	    <script th:inline="javascript">
+	    
+	    const el = document.getElementById('chart-area2');
+
+		 // ✅ 오늘 기준 7일 날짜+요일 가져오기
+		 const categories = getLast7DaysWithWeekday();
+	
+		 // ✅ 7일치 데이터를 서버에서 가져와서 차트 그리기
+		 async function fetchSevenDaysInspectionData() {
+		   try {
+		
+		     // 서버로 요청 (7일치 데이터)
+		     const response = await fetch('/iqc/inspection-summary-last-7-days');
+		     const result = await response.json(); // 예: [{passCount, inProgressCount, failCount}, {}, {}, ... 총 7개]
+	
+		     // ✅ series용 데이터 배열 만들기
+		     const passRates = [];
+		     const inProgressRates = [];
+		     const failRates = [];
+	
+		     result.forEach(dayData => {
+		       const totalCount = dayData.PASS_COUNT + dayData.IN_PROGRESS_COUNT + dayData.FAIL_COUNT;
+		       passRates.push(safeDivide(dayData.PASS_COUNT, totalCount));
+		       inProgressRates.push(safeDivide(dayData.IN_PROGRESS_COUNT, totalCount));
+		       failRates.push(safeDivide(dayData.FAIL_COUNT, totalCount));
+		     });
+	
+		     // ✅ 최종 차트 데이터 만들기
+		     const data = {
+		       categories: categories, // 7일 날짜
+		       series: [
+		         { name: '합격', data: passRates },
+		         { name: '검사중', data: inProgressRates },
+		         { name: '불합격', data: failRates }
+		       ]
+		     };
+	
+		     const options = {
+		       chart: { 
+		         title: '최근 7일 불량율', 
+		         height: 400 
+		       },
+		       series: { 
+		         stack: { type: 'percent' }, 
+		         dataLabels: { 
+		           visible: true,
+		           formatter: (value) => `${value.toFixed(1)}%`
+		         }
+		       }
+		     };
+	
+		     toastui.Chart.columnChart({ el, data, options });
+		     
+		   } catch (error) {
+		     console.error('7일 데이터 불러오기 실패:', error);
+		   }
+		 }
+	
+		 // ✅ 7일 날짜 + 요일 생성 함수
+		 function getLast7DaysWithWeekday() {
+		   const today = new Date();
+		   const dates = [];
+		   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+	
+		   for (let i = 6; i >= 0; i--) {
+		     const d = new Date();
+		     d.setDate(today.getDate() - i);
+		     const month = d.getMonth() + 1;
+		     const day = d.getDate();
+		     const weekDay = weekDays[d.getDay()];
+		     dates.push(`${month}/${day} (${weekDay})`);
+		   }
+		   return dates;
+		 }
+	
+		 // ✅ 실행
+		 fetchSevenDaysInspectionData();
+	    
+	    
+	    
+	    
+	    
+	 	// ✅ 안전한 나누기 함수
+	    const safeDivide = (num, total) => total === 0 ? 0 : (num / total) * 100;
+
+	    // ✅ 차트 생성 함수
+	    function drawChart(passCount, inProgressCount, failCount, totalCount) {
+	      const el = document.getElementById('chart-area');
+
+	      const passRate = safeDivide(passCount, totalCount);
+	      const inProgressRate = safeDivide(inProgressCount, totalCount);
+	      const failRate = safeDivide(failCount, totalCount);
+
+	      const data = {
+	        categories: ['불량율'],
+	        series: [
+	          { name: '합격', data: passRate },
+	          { name: '검사중', data: inProgressRate },
+	          { name: '불합격', data: failRate }
+	        ]
+	      };
+
+	      const options = {
+	        chart: { 
+	          title: '최근 7일 불량율', 
+	          height: 400 
+	        },
+	        series: {
+	          dataLabels: { 
+	            visible: true, 
+	            formatter: (value) => `${value.toFixed(1)}%`
+	          }
+	        }
+	      };
+
+	      toastui.Chart.pieChart({ el, data, options });
+	    }
+
+	    // ✅ 서버에서 데이터 가져오기
+	    async function fetchInspectionData() {
+	      try {
+	        // 예시: GET 방식으로 데이터 요청
+	        const response = await fetch('/iqc/inspection-summary');
+	        const result = await response.json(); // JSON 파싱
+
+	        // 받아온 데이터 예시
+	        const { PASS_COUNT, IN_PROGRESS_COUNT, FAIL_COUNT } = result;
+	        const totalCount = PASS_COUNT + IN_PROGRESS_COUNT + FAIL_COUNT;
+
+	        drawChart(PASS_COUNT, IN_PROGRESS_COUNT, FAIL_COUNT, totalCount);
+	      } catch (error) {
+	        console.error('데이터 불러오기 실패:', error);
+	      }
+	    }
+
+	    // ✅ 실행
+	    fetchInspectionData();
+		
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+	    
+		const userRole = /*[[${userRole}]]*/ 'ROLE_USER'; // 기본값은 일반유저
+	    
+	    let isAdmin = userRole === 'ROLE_ADMIN' || userRole === 'ROLE_MANAGER';
+	    
+	    const oneMonthAgo = new Date();
+		  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+		  // 시작일 DatePicker
+		  const startPicker = new tui.DatePicker('#startDateWrapper', {
+			language: 'ko',  
+		    date: oneMonthAgo,
+		    input: {
+		      element: '#startDate',
+		      format: 'yyyy-MM-dd'
+		    }
+		  });
+		
+		  // 종료일 DatePicker
+		  const endPicker = new tui.DatePicker('#endDateWrapper', {
+			language: 'ko',  
+		    date: new Date(),
+		    input: {
+		      element: '#endDate',
+		      format: 'yyyy-MM-dd'
+		    }
+		  });
+	    
+
+	    const grid = new tui.Grid({
+            el: document.getElementById('gridTop'),
+            data: /*[[${iqcList}]]*/ [],
+            rowHeaders: ['checkbox'],
+            pageOptions: {
+    	        useClient: true,  // 서버 사이드 페이징 활성화
+    	        perPage: 20
+    	    },
+            columns: [
+            	{ 
+                  header: 'NO', 
+            	  name: 'iqcNo', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  align: "center",
+            	  hidden: true
+            	},
+            	{
+           		  header: '작업 상태',
+           		  name: 'iqcInspectionStatus',
+           		  sortable: true,
+           		  align: 'center',
+           		  width: 100,
+           		formatter: ({ row, value }) => {
+           		    let btnClass = 'btn-secondary';
+
+           		    if (value === '검사중') {
+           		      btnClass = 'btn-primary';
+           		    } else if (value === '검사완료') {
+           		      btnClass = 'btn-success';
+           		    }
+
+	           		 return `<button 
+	                 class="btn ${btnClass} btn-sm" 
+	                 data-action="status" 
+	                 data-code="${row.iqcCode}" 
+	                 data-status="${value}"
+	               >${value}</button>`;
+     				}
+           		},
+           		{
+           		  header: '합격 여부',
+           		  name: 'iqcInspectionResult',
+           		  sortable: true,
+           		  align: 'center',
+           		  width: 100,
+           		  formatter: ({ value }) => {
+           		    let btnClass = 'btn-secondary';
+
+           		    if (value === '합격') {
+           		      btnClass = 'btn-success';
+           		    } else if (value === '불합격') {
+           		      btnClass = 'btn-danger';
+           		    }
+
+           		    return `<button class="btn ${btnClass} btn-sm">${value}</button>`;
+           		  }
+           		},
+            	{ 
+                  header: '입고 검사 코드', 
+            	  name: 'iqcCode', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 100,
+            	  align: "center",
+            	  hidden: true 
+            	},       	
+            	{ 
+                  header: '입고 코드', 
+            	  name: 'receiptCode', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 100,
+            	  align: "center",
+            	  hidden: true 
+            	},       	
+            	{ 
+                  header: '검사이름', 
+              	  name: 'qcmName', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  width: 200,
+              	  align: "center"
+              	},
+              	{ 
+                  header: '검수자', 
+               	  name: 'empName', 
+               	  sortable: true, 
+               	  filter: 'text', 
+               	  width: 100,
+               	  align: "center",
+               	},       
+              	{ 
+                  header: '검수자 아이디', 
+               	  name: 'empId', 
+               	  sortable: true, 
+               	  filter: 'text', 
+               	  width: 100,
+               	  align: "center",
+            	  hidden: true 
+               	},       
+            	{ 
+               	  header: '원자재', 
+               	  name: 'mtlName', 
+               	  sortable: true, 
+               	  filter: 'text',
+                  width: 200,
+               	  align: "center",
+            	},
+            	{ 
+              	  header: '입고 검사 수량', 
+              	  name: 'receivedQty', 
+              	  sortable: true, 
+              	  filter: 'text',
+              	  width: 100,
+             	  align: "center",  
+              	},
+            	{ 
+              	  header: '단위', 
+              	  name: 'unitQty', 
+              	  sortable: true, 
+              	  filter: 'text',
+              	  width: 50,
+             	  align: "center",  
+              	},
+            	{ 
+            	  header: '무게 측정값', 
+            	  name: 'iqcMeasuredWeightValue', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 100,
+           		  align: "center",  
+            	},
+            	{ 
+           	      header: '단위(무게)', 
+           		  name: 'qcmUnitWeight', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+              	},
+            	{
+           	      header: '길이 측정값', 
+           		  name: 'iqcMeasuredLengthValue', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+	    		},
+            	{ 
+           	      header: '단위(길이)', 
+           		  name: 'qcmUnitLength', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+              	},
+	    		{ 
+           	      header: '검사 시작 시간', 
+           		  name: 'iqcStartTime', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 200,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+	
+	           		    const year = date.getFullYear();
+	           		    const month = String(date.getMonth() + 1).padStart(2, '0');
+	           		    const day = String(date.getDate()).padStart(2, '0');
+	           		    const hours = String(date.getHours()).padStart(2, '0');
+	           		    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${year}년 ${month}월 ${day}일 ${hours}시 ${minutes}분`;
+	           		}
+           		},
+	    		{ 
+           	      header: '검사 종료 시간', 
+           		  name: 'iqcEndTime', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 200,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+	
+	           		    const year = date.getFullYear();
+	           		    const month = String(date.getMonth() + 1).padStart(2, '0');
+	           		    const day = String(date.getDate()).padStart(2, '0');
+	           		    const hours = String(date.getHours()).padStart(2, '0');
+	           		    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${year}년 ${month}월 ${day}일 ${hours}시 ${minutes}분`;
+	           		}
+              	},
+	    		{ 
+           	      header: '비고', 
+           		  name: 'iqcRemarks', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 300,
+           		  align: "center",
+           		  ...(isAdmin && {
+    	           		editor: {
+    	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+    	           	    }
+    	           	  }),
+    	           	  formatter: ({ value }) => value // 그대로 출력
+              	}
+            ],  
+            autoEdit: true,
+    		editingEvent: 'click'    
+          });
+	    
+	    
+	    
+	 // =======================
+	 // 초기 바인딩
+	 // =======================
+
+	 // 상태 변경 버튼 클릭 이벤트
+	 document.getElementById('gridTop').addEventListener('click', onGridTopClick);
+
+	 // 그리드 더블클릭 이벤트
+	 grid.on('dblclick', onGridDblClick);
+
+	 // =======================
+	 // 핸들러 함수들
+	 // =======================
+
+	 // [1] 상태 버튼 클릭 시
+	 function onGridTopClick(e) {
+	   if (e.target.tagName !== 'BUTTON' || e.target.dataset.action !== 'status') return;
+
+	   const iqcCode = e.target.dataset.code;
+	   const status = e.target.dataset.status;
+
+	   // 버튼이 있는 행 찾기
+	   const rowKey = grid.getData().findIndex(row => row.iqcCode === iqcCode);
+	   const row = grid.getRow(rowKey);
+	   const receiptCode = row.receiptCode; // 또는 e.target.dataset.receiptCode;
+
+	   // 검사 항목(qcmName) 없는 경우 차단
+	   if (!row.qcmName || row.qcmName.trim() === '') {
+	     Swal.fire({
+	       icon: 'warning',
+	       title: '검사항목이 없습니다.',
+	       text: '검사항목을 선택한 후 상태를 변경할 수 있습니다.'
+	     });
+	     return;
+	   }
+
+	   handleStatusClick(iqcCode, status, row, rowKey, receiptCode); // ✅ 전달
+
+	 }
+
+	 // [2] 상태 전환 핸들러
+	 async function handleStatusClick(iqcCode, status, row, rowKey, receiptCode) {
+	   if (status === '검사시작') {
+	     Swal.fire({
+	       title: `'검사중' 상태로 변경하시겠습니까?`,
+	       icon: 'warning',
+	       showCancelButton: true,
+	       confirmButtonText: '변경',
+	       cancelButtonText: '취소'
+	     }).then(result => {
+	       if (result.isConfirmed) {
+	         updateStatus(iqcCode, '검사중', '상태가 "검사중"으로 변경되었습니다.', receiptCode);
+	       }
+	     });
+
+	   } else if (status === '검사중') {
+	     Swal.fire({
+	       title: `'검사완료' 상태로 변경하시겠습니까?`,
+	       icon: 'warning',
+	       showCancelButton: true,
+	       confirmButtonText: '변경',
+	       cancelButtonText: '취소'
+	     }).then(async result => {
+	       if (!result.isConfirmed) return;
+	       
+	    	// ✅ 검사완료 가기 전에 자동검사 먼저
+	        await autoInspect(row, rowKey);
+
+	       // ✅ 자동검사 성공했으면 상태 변경
+	       updateStatus(iqcCode, '검사완료', '상태가 "검사완료"로 변경되었습니다.', receiptCode);
+	     });
+
+	   } else if (status === '검사완료') {
+	     Swal.fire({
+	       icon: 'info',
+	       title: '상태 변경 불가',
+	       text: '검사완료 상태에서는 더 이상 상태를 변경할 수 없습니다.'
+	     });
+	   }
+	 }
+
+	 // [3] 그리드 더블클릭 시 (검사항목 선택)
+	 async function onGridDblClick(ev) {
+	   if (!ev || typeof ev.rowKey !== 'number' || ev.columnName !== 'qcmName') return;
+
+	   const row = grid.getRow(ev.rowKey);
+	   const mtlName = row.mtlName;
+	   const status = row.iqcInspectionStatus;
+
+	   // 검사중 또는 검사완료 상태일 경우 수정 차단
+	   if (status === '검사중' || status === '검사완료') {
+	     Swal.fire({
+	       icon: 'warning',
+	       title: '검사 항목 수정 불가',
+	       text: `${status} 상태에서는 검사 항목을 변경할 수 없습니다.`
+	     });
+	     return;
+	   }
+
+	   if (!mtlName) {
+	     alert("원자재 이름이 없습니다.");
+	     return;
+	   }
+
+	   const qcmNames = await fetchQcmNamesByMtlName(mtlName);
+	   if (qcmNames.length === 0) {
+	     Swal.fire("해당 원자재에 검사 항목이 <br>없습니다.");
+	     return;
+	   }
+
+	   const inputOptions = {
+	     '': '선택 안함',
+	     ...qcmNames.reduce((acc, item) => {
+	       acc[item.qcmName] = item.qcmName;
+	       return acc;
+	     }, {})
+	   };
+
+	   const { value: selectedQcm } = await Swal.fire({
+	     title: `${mtlName}의 검사 항목 선택`,
+	     input: 'select',
+	     inputOptions,
+	     inputPlaceholder: '검사 항목을 선택하세요',
+	     showCancelButton: true
+	   });
+
+	   if (selectedQcm !== undefined) {
+	     const selectedItem = qcmNames.find(item => item.qcmName === selectedQcm);
+
+	     grid.setValue(ev.rowKey, 'qcmName', selectedQcm);
+	     grid.setValue(ev.rowKey, 'qcmUnitLength', selectedItem?.qcmUnitLength || '');
+	     grid.setValue(ev.rowKey, 'qcmUnitWeight', selectedItem?.qcmUnitWeight || '');
+	   }
+	 }
+
+	 // =======================
+	 // 헬퍼 함수들
+	 // =======================
+
+	 // 검사중일 때 자동 검사 API 호출
+	 async function autoInspect(row, rowKey) {
+	   const iqcCode = row.iqcCode;
+
+	   const response = await fetch('/iqc/auto-inspect', {
+	     method: 'POST',
+	     headers: { 'Content-Type': 'application/json' },
+	     body: JSON.stringify({ iqcCode })
+	   });
+	   
+	   const result = await response.json();
+
+	   if (!response.ok) {
+	     console.error('자동 검사 실패', result.message || '');
+	     return false;
+	   }
+
+	   grid.setValue(rowKey, 'iqcMeasuredWeightValue', result.IQC_MEASURED_WEIGHT_VALUE ?? '');
+	   grid.setValue(rowKey, 'iqcMeasuredLengthValue', result.IQC_MEASURED_LENGTG_VALUE ?? '');
+	   grid.setValue(rowKey, 'iqcInspectionResult', result.IQC_INSPECTION_RESULT);
+
+	   await Swal.fire({
+	     icon: result.IQC_INSPECTION_RESULT === '합격' ? 'success' : 'error',
+	     title: `자동 검사 결과: ${result.IQC_INSPECTION_RESULT}`,
+	     text: `측정값 - 무게: ${result.IQC_MEASURED_WEIGHT_VALUE ?? '-'}, 길이: ${result.IQC_MEASURED_LENGTG_VALUE ?? '-'}`
+	   });
+
+	   return true;
+	 }
+
+	 // 상태 변경 서버 요청
+	 function updateStatus(iqcCode, newStatus, successMsg, receiptCode) {
+	   fetch('/iqc/status-action', {
+	     method: 'POST',
+	     headers: { 'Content-Type': 'application/json' },
+	     body: JSON.stringify({ iqcCode, status: newStatus, receiptCode })
+	   })
+	     .then(res => res.json())
+	     .then(data => {
+	       Swal.fire({
+	         title: '성공',
+	         text: successMsg,
+	         icon: 'success'
+	       }).then(() => location.reload());
+	     })
+	     .catch(err => {
+	       console.error('전송 실패:', err);
+	       Swal.fire('오류', '상태 변경에 실패했습니다.', 'error');
+	     });
+	 }
+
+	 // 서버에서 원자재별 검사항목 가져오기
+	 async function fetchQcmNamesByMtlName(mtlName) {
+	   try {
+	     const res = await fetch(`/iqc/names-by-mtl?mtlName=${encodeURIComponent(mtlName)}`);
+	     if (!res.ok) throw new Error("서버 오류");
+	     const list = await res.json();
+
+	     return list.map(item => ({
+	       qcmName: item.QCM_NAME,
+	       qcmUnitLength: item.QCM_UNIT_LENGTH,
+	       qcmUnitWeight: item.QCM_UNIT_WEIGHT
+	     }));
+	   } catch (err) {
+	     console.error(err);
+	     return [];
+	   }
+	 }
+
+	    
+	    
+	    
+	    
+	    
+	    // 아무곳이나 클릭하면 상세정보 띄워주기
+	    grid.on('click', ev => {
+	    	  const rowKey = ev.rowKey;
+	    	  const rowData = grid.getRow(rowKey);
+	    	  if (!rowData) return;
+	    	  
+	    	  const status = rowData.iqcInspectionStatus;
+	    	  const result = rowData.iqcInspectionResult;
+
+	    	  let statusColor = '#6c757d'; // 기본 회색 (검사시작)
+	    	  let resultColor = '#6c757d'; // 기본 회색 (예정)
+
+	    	  if (status === '검사중') {
+	    	    statusColor = '#0d6efd'; // 파랑
+	    	  } else if (status === '검사완료') {
+	    	    statusColor = '#198754'; // 초록
+	    	  }
+
+	    	  if (result === '합격') {
+	    	    resultColor = '#198754'; // 초록
+	    	  } else if (result === '불합격') {
+	    	    resultColor = '#dc3545'; // 빨강
+	    	  }
+
+	    	  const resultLabel = result === '합격' ? '합격'
+	    	                  : result === '불합격' ? '불합격'
+	    	                  : '예정';
+
+			  const statusHtml = `<span style="font-weight: 600; color: ${statusColor};"><b>${status}</b></span>`;
+			  const resultHtml = `<span style="font-weight: 600; color: ${resultColor};"><b>${resultLabel}</b></span>`;
+			  
+			  function safe(value) {
+				  return (value === null || value === undefined) ? ' ' : value;
+				}
+
+	    	  const detailHtml = `
+	    		<div style="border: 1px solid #ccc; border-radius: 8px; padding: 16px; background-color: #fdfdfd;">
+	    		  <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+	    		    ${makeDetailItem('작업 상태', statusHtml)}
+	    		    ${makeDetailItem('작업 상태', resultHtml)}
+	    		    ${makeDetailItem('입고 코드', rowData.receiptCode)}
+	    	        ${makeDetailItem('입고 검사 코드', rowData.iqcCode)}
+	    	        ${makeDetailItem('검사이름', rowData.qcmName)}
+	    	        ${makeDetailItem('입고 검사 수량', `${rowData.receivedQty} ${rowData.unitQty}`)}
+	    	        ${makeDetailItem('검수자', `${safe(rowData.empName)} ${safe(rowData.empId)}`)}
+	    	        ${makeDetailItem('원자재', rowData.mtlName)}
+	    	        ${makeDetailItem('무게 측정값', `${safe(rowData.iqcMeasuredWeightValue)} ${safe(rowData.qcmUnitWeight)}`)}
+	    	        ${makeDetailItem('길이 측정값', `${safe(rowData.iqcMeasuredLengthValue)} ${safe(rowData.qcmUnitLength)}`)}
+	    	        ${makeDetailItem('검사 시작 시간', formatDate(rowData.iqcStartTime))}
+	    	        ${makeDetailItem('검사 종료 시간', formatDate(rowData.iqcEndTime))}
+	    	        ${makeDetailItem('비고', rowData.iqcRemarks)}
+	    	      </div>
+	    	    </div>
+	    	  `;
+
+	    	  document.getElementById('iqcDetailContent').innerHTML = detailHtml;
+	    	});
+	    function makeDetailItem(label, value) {
+	    	  return `
+	    	    <div style="flex: 0 0 calc(33.3333% - 12px); display: flex; min-width: 240px; box-sizing: border-box;">
+	    	      <div style="font-weight: bold; color: #333; width: 120px;">${label}</div>
+	    	      <div style="flex: 1;">${value ?? '-'}</div>
+	    	    </div>
+	    	  `;
+	    	}
+
+	    	function formatDate(value) {
+	    	  if (!value) return '';
+	    	  const date = new Date(value);
+	    	  if (isNaN(date)) return '';
+	    	  const y = date.getFullYear();
+	    	  const m = String(date.getMonth() + 1).padStart(2, '0');
+	    	  const d = String(date.getDate()).padStart(2, '0');
+	    	  const h = String(date.getHours()).padStart(2, '0');
+	    	  const min = String(date.getMinutes()).padStart(2, '0');
+	    	  return `${y}년 ${m}월 ${d}일 ${h}시 ${min}분`;
+	    	}
+	    	
+	    	
+	    	
+	    	
+	    	
+	    	//수정
+			grid.on('afterChange', (ev) => {
+			    let evValue = ev.changes[0];
+			    let rk = evValue.rowKey;
+			
+			    setTimeout(() => { // ✅ afterChange 다음에 한 프레임 쉬고 실행
+			        const updatedRow = grid.getRow(rk);
+			
+			        let sendData = {
+			            iqcNo: updatedRow.iqcNo,
+			            iqcRemarks: updatedRow.iqcRemarks,
+			            qcmName: updatedRow.qcmName,
+			            qcmUnitWeight: updatedRow.qcmUnitWeight,
+			            qcmUnitLength: updatedRow.qcmUnitLength
+			        };
+			
+			        $.ajax({
+			            url: "/iqc/edit",
+			            type: "POST",
+			            data: sendData,
+			            success: function(result) {
+			                console.log(result);
+			            },
+			            error: function(errorResult) {
+			                grid.restore();
+			            }
+			        });
+			
+			    }, 0); // ✅ 아주 살짝 쉬었다가 실행 (렌더링 끝난 후)
+			});
+
+
+	    
+
+	    
+	    
+	    
+	    
+    	// 행 아무곳이나 클릭하면 체크박스 활성화
+	    grid.on('click', ev => {
+	    	  const { rowKey, columnName } = ev;
+
+	    	  if (columnName === '_checked') return;
+	    	  const isChecked = grid.getCheckedRowKeys().includes(rowKey);
+	    	  if (!isChecked) {
+	    	    grid.check(rowKey);
+	    	  } else {
+	    	    grid.uncheck(rowKey);
+	    	  }
+	    	});
+        
+        
+        
+        
+        async function deleteIqc() {
+  		  const checkedRows = grid.getCheckedRows();
+  		  const ids = checkedRows.map(row => row.iqcNo);
+
+  		  if (ids.length === 0) {
+  		    await Swal.fire({
+  		      icon: "warning",
+  		      title: "삭제할 데이터를 선택해주세요."
+  		    });
+  		    return;
+  		  }
+
+  		  const result = await Swal.fire({
+  		    title: "정말 삭제하시겠습니까?",
+  		    text: `총 ${ids.length}건의 데이터를 삭제합니다.`,
+  		    icon: "warning",
+  		    showDenyButton: true,
+  		    confirmButtonText: "삭제",
+  		    denyButtonText: "취소",
+  		  });
+
+  		  if (result.isDenied) {
+  		    await Swal.fire({
+  		      icon: "error",
+  		      title: "삭제가 취소되었습니다.",
+  		    });
+  		    return;
+  		  }
+  		  
+
+  		  // 삭제 API 요청
+  		  try {
+  		    const response = await fetch('/iqc/delete', {
+  		      method: 'POST',
+  		      headers: {
+  		        'Content-Type': 'application/json'
+  		      },
+  		      body: JSON.stringify({ ids: ids }) // 필요 시 선택한 ID 전달
+  		    });
+
+  		    if (!response.ok) {
+  		      await Swal.fire({
+  		        icon: "error",
+  		        title: "삭제 처리 중 서버 오류가 발생했습니다",
+  		      });
+  		      throw new Error("삭제 처리 중 서버 오류");
+  		    }
+
+  		    await Swal.fire({
+  		      title: "삭제가 완료되었습니다",
+  		      icon: "success",
+  		    });
+  		    
+  		      location.reload();
+
+  		  } catch (error) {
+  		    console.error('Error:', error);
+  		    await Swal.fire({
+  		      icon: "error",
+  		      title: "삭제 처리 중 예외가 발생했습니다",
+  		    });
+  		  }
+  		}
+        
+        
+        
+        
+        
+      //그리드 -> 엑셀 파일로 다운로드
+    	document.getElementById('ExcelDownBtn').addEventListener('click', function () {
+    	    
+    		//현재 그리드 데이터 가져오기
+    		const gridData = grid.getData();
+    		
+    		//현재 그리드의 컬럼 값 가져오기
+    	    const columns = grid.getColumns();
+
+    		//컬럼을 header와 name으로 분리
+    	    const header = columns.map(col => col.header);
+    	    const keys = columns.map(col => col.name);
+
+    		//header만큼 배열 생성
+    	    const exportData = [header];
+
+    		//row값을 데이터에 저장
+    	    gridData.forEach(row => {
+    	        const rowData = keys.map(key => row[key]);
+    	        exportData.push(rowData);
+    	    });
+
+    		//CDN 이용
+    	    const worksheet = XLSX.utils.aoa_to_sheet(exportData);
+    	    const workbook = XLSX.utils.book_new();
+
+    	    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    	    XLSX.writeFile(workbook, 'IQC-grid-data.xlsx');
+    	});
+    	
+    	let file;
+    	let reader;
+    	
+    	//파일이 선택시 실행
+    	document.getElementById('fileInput').addEventListener('change', function (e) {	
+    		
+    	    file = e.target.files[0];
+    	    reader = new FileReader();
+    		
+    		if (!file) {
+    			Swal.fire({
+    	            icon: 'warning',
+    	            title: '파일 없음',
+    	            text: '파일을 선택해 주세요.',
+    	            confirmButtonText: '확인'
+    	        });
+    	        return;
+    		}
+    	});
+
+    	//버튼 클릭 시 선택된 엑셀 파일을 그리드에 출력
+    	document.getElementById('ExcelUpBtn').addEventListener('click', function (e) {
+    		
+    		if (!file) {
+    			document.getElementById('fileInput').click();
+    	        return;
+    	    }
+    		
+    		reader.onload = function (event) {
+    			const data = new Uint8Array(event.target.result);
+    		    const workbook = XLSX.read(data, { type: 'array' });
+
+    			const firstSheetName = workbook.SheetNames[0];
+    		    const worksheet = workbook.Sheets[firstSheetName];
+
+    			console.log(worksheet);
+    			
+    			worksheet["A1"] = { t: "s", v: "iqcNo", r:"<t>iqcNo</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcNo', w: 'iqcNo' };
+    			worksheet["B1"] = { t: "s", v: "iqcInspectionStatus", r:"<t>iqcInspectionStatus</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcInspectionStatus', w: 'iqcInspectionStatus' };
+    			worksheet["C1"] = { t: "s", v: "iqcInspectionResult", r:"<t>iqcInspectionResult</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcInspectionResult', w: 'iqcInspectionResult' };    			
+    			worksheet["D1"] = { t: "s", v: "iqcCode", r:"<t>iqcCode</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcCode', w: 'iqcCode' };
+    			worksheet["E1"] = { t: "s", v: "qcmName", r:"<t>qcmName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmName', w: 'qcmName' };
+    			worksheet["F1"] = { t: "s", v: "empName", r:"<t>empName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'empName', w: 'empName' };
+    			worksheet["G1"] = { t: "s", v: "empId", r:"<t>empId</t><phoneticPr fontId='1' type='noConversion'/>", h: 'empId', w: 'empId' };
+    			worksheet["H1"] = { t: "s", v: "mtlName", r:"<t>mtlName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'mtlName', w: 'mtlName' };
+    			worksheet["I1"] = { t: "s", v: "receivedQty", r:"<t>receivedQty</t><phoneticPr fontId='1' type='noConversion'/>", h: 'receivedQty', w: 'receivedQty' };    			
+    			worksheet["J1"] = { t: "s", v: "unitQty", r:"<t>unitQty</t><phoneticPr fontId='1' type='noConversion'/>", h: 'unitQty', w: 'unitQty' };    			
+    			worksheet["K1"] = { t: "s", v: "iqcMeasuredWeightValue", r:"<t>iqcMeasuredWeightValue</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcMeasuredWeightValue', w: 'iqcMeasuredWeightValue' };
+    			worksheet["L1"] = { t: "s", v: "qcmUnitWeight", r:"<t>qcmUnitWeight</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmUnitWeight', w: 'qcmUnitWeight' };
+    			worksheet["M1"] = { t: "s", v: "iqcMeasuredLengthValue", r:"<t>iqcMeasuredLengthValue</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcMeasuredLengthValue', w: 'iqcMeasuredLengthValue' };
+    			worksheet["N1"] = { t: "s", v: "qcmUnitLength", r:"<t>qcmUnitLength</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmUnitLength', w: 'qcmUnitLength' };
+    			worksheet["O1"] = { t: "s", v: "iqcStartTime", r:"<t>iqcStartTime</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcStartTime', w: 'iqcStartTime' };
+    			worksheet["P1"] = { t: "s", v: "iqcEndTime", r:"<t>iqcEndTime</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcEndTime', w: 'iqcEndTime' };
+    			worksheet["Q1"] = { t: "s", v: "iqcRemarks", r:"<t>iqcRemarks</t><phoneticPr fontId='1' type='noConversion'/>", h: 'iqcRemarks', w: 'iqcRemarks' };
+    			
+    			const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    			// TUI Grid에 반영
+    			grid.resetData(jsonData);
+    	   
+    	   	
+    			// 바로 서버에 저장 요청
+    			fetch('/iqc/saveExcelData', {
+    			    method: 'POST',
+    			    headers: {
+    			        'Content-Type': 'application/json'
+    			    },
+    			    body: JSON.stringify(jsonData)
+    			})
+    			.then(res => {
+    			    if (!res.ok) throw new Error("저장 실패");
+    			    return res.text();
+    			})
+    			.then(data => {
+    			    Swal.fire({
+    			        icon: 'success',
+    			        title: '업로드 완료',
+    			        text: '엑셀 업로드 및 저장이 완료되었습니다.',
+    			        confirmButtonText: '확인'
+    			    });
+    			})
+    			.catch(err => {
+    			    console.error(err);
+    			    Swal.fire({
+    			        icon: 'error',
+    			        title: '저장 오류',
+    			        text: '엑셀 저장 중 오류가 발생했습니다.',
+    			        confirmButtonText: '닫기'
+    			    });
+    			});
+    			
+    			};
+
+    		reader.readAsArrayBuffer(file);
+    		
+    	});	
+    	
+
+        
+        
+        
+        
+	  	// grid 데이터 원본 저장
+	  	const originalData = grid.getData();
+	
+	  	document.getElementById('searchInput').addEventListener('input', function (e) {
+	  	  const keyword = e.target.value.toLowerCase();
+	
+	  	  // 원본 데이터를 기준으로 필터링
+	  	  const filtered = originalData.filter(row => {
+	  	    return Object.values(row).some(val => {
+	  	      if (val == null) return false;
+	  	      return String(val).toLowerCase().includes(keyword);
+	  	    });
+	  	  });
+	
+	  	  // 필터링된 데이터로 그리드 업데이트
+	  	  grid.resetData(filtered);
+	  	});
+	  	
+	  	
+	  	function applyFilter() {
+  		  const keyword = document.getElementById('searchInput').value.toLowerCase();
+  		  const start = document.getElementById('startDate').value;
+  		  const end = document.getElementById('endDate').value;
+
+  		  let filtered = originalData;
+
+  		  if (start && end) {
+  		    const startDate = new Date(start);
+  		    const endDate = new Date(end);
+  		    endDate.setHours(23, 59, 59, 999);
+
+  		    filtered = filtered.filter(row => {
+  		      const iqcStartTime = new Date(row.iqcStartTime);
+  		      return iqcStartTime >= startDate && iqcStartTime <= endDate;
+  		    });
+  		  }
+
+  		  if (keyword) {
+  		    filtered = filtered.filter(row =>
+  		      Object.values(row).some(val =>
+  		        val != null && String(val).toLowerCase().includes(keyword)
+  		      )
+  		    );
+  		  }
+
+  		  grid.resetData(filtered);
+  		}
+
+  		document.getElementById('dateSearchBtn').addEventListener('click', applyFilter);
+  		document.getElementById('searchInput').addEventListener('input', applyFilter);
+  	
+	</script> 
+	
+	
+	
+	
+	</div>
+
+
+
+</body>
+</html>

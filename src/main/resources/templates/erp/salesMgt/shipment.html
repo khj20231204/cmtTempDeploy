@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}"> 
+	<head>
+		<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	    
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <title>출하요청</title>
+    
+    <title>Cmt</title>
+	<style>
+		
+	    .container1 {
+	        display: grid;
+			grid-template-columns: 100px 150px 120px 180px 50px 180px 130px 150px 1fr; 
+	        gap: 3px;
+	        background: #f5f5f5;
+	        padding: 4px;
+	        border-radius: 5px;
+			border : 1px solid black;
+			text-align: center;
+	    }
+		
+		.container2 {
+	        display: grid;
+			grid-template-columns: 100px 150px 150px 80px 80px 160px 160px 80px 80px 100px 1fr; 
+	        gap: 3px;
+	        background: #f5f5f5;
+	        padding: 4px;
+	        border-radius: 5px;
+			border : 1px solid black;
+			text-align: center;
+	    }
+			
+		
+	    .container input, .container select {
+	        padding: 5px;
+	        border: 1px solid #ccc;
+	        border-radius: 3px;
+	    }
+		
+	    .button-container {
+	        display: flex;
+	        gap: 5px;
+	        margin: 10px;
+			justify-content: space-between;
+	    }
+		
+	    button {
+	        padding: 5px 10px;
+	        border: none;
+	        cursor: pointer;
+	        border-radius: 3px;
+	    }
+		
+	</style>
+</head>
+<body>
+
+    <div layout:fragment="content">
+        
+		<div class="button-container">
+			<div><h2>출하요청</h2></div>
+			<div>
+	        <button class="btn btn-primary">조회</button>
+	        <button class="btn btn-primary">출하요청 (A1)</button>
+	        <button class="btn btn-primary">일괄마감 (A2)</button>
+	        <button class="btn btn-primary">마감취소 (A3)</button>
+	        <button class="btn btn-primary">📊 엑셀</button>
+			</div>
+	    </div>
+		
+		<form action="/sales/so" method="get" th:object="${SalesOrder}">	    
+		    <div class="container1">
+		        <label class="sell_company_label">회사</label>
+		        <select class="sell_select">
+		            <option th:each="code : ${soModel}"
+						th:value="${code.cltCode}"
+						th:text="${code.cltCode}"
+						selected="${SalesOrder.cltCode == code}"
+					></option>
+		        </select>
+		        <label class="sell_so_date_label">요청일</label>
+		        <input type="date" class="sell_date1">
+		        <span class="sell_tilt">~</span>
+		        <input type="date" class="sell_date2">
+		        <label class="sell_sonum_label">요청번호</label>
+		        <input type="text" class="sell_sonum_text">
+				<span></span>
+		    </div>
+	
+		    <div class="container2">
+		        <label>품목</label>
+		        <input type="text" placeholder="CODE">
+		        <input type="text" placeholder="NAME">
+		        <button class="search">🔍 검색</button>
+		        <label>거래처</label>
+		        <input type="text" placeholder="CODE">
+		        <input type="text" placeholder="NAME">
+		        <button class="search">🔍 검색</button>
+				<label>비고</label>
+		        <input type="text" placeholder="비고">
+		    </div>
+	
+		</form>
+		
+		<br>
+<!--		<th:block th:each="soModel : ${soModel}">-->
+<!--			<div th:text="${soModel}"></div>-->
+<!--		</th:block>-->
+
+<!-- 그리드 top 시작 -->
+	   	<div id="gridTop"></div>
+	
+	    <script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+	    <script th:inline="javascript">
+	    const grid = new tui.Grid({
+	        el: document.getElementById('gridTop'), // 그리드를 표시할 DOM 엘리먼트
+			data : /*[[${soModel}]]*/ [],
+	        rowHeaders: ['checkbox'], // 행의 첫 번째 열에 체크박스 추가
+	        columns: [
+	            {
+	                header: '출하코드',
+	                name: 'soCode'
+	            },
+	            {
+	                header: '출하일자',
+	                name: 'soDate'
+	            },
+	            {
+	                header: '사원코드',
+	                name: 'empId'
+	            }
+	        ] // 열 설정
+	    });
+	    
+	 	// 체크박스 클릭 시 이벤트 추가
+	    grid.on('check', (checkItem) => {
+	        const rowData = grid.getRow(checkItem.rowKey); // 선택한 행의 데이터 가져오기
+	        alert(`선택한 행: 이름=${rowData.soCode}, 나이=${rowData.soDate}, 주소=${rowData.empId}`);
+	    });
+
+	    // 체크 해제 시 이벤트 추가
+	    grid.on('uncheck', (checkItem) => {
+	        const rowData = grid.getRow(checkItem.rowKey);
+	        alert(`해제한 행: 이름=${rowData.name}, 나이=${rowData.age}, 주소=${rowData.address}`);
+	    });
+	    
+	    grid.on('click', (ev) => {
+	    });
+	    </script>
+	    <!-- 그리드 끝 --> 
+		
+    </div>
+   	
+	<th:block layout:fragment="script">
+	    
+	</th:block>
+</body>
+
+</html>

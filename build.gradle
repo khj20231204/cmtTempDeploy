@@ -1,0 +1,73 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'war'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+bootWar {
+    archiveFileName = 'myapp.war' //명시적으로 WAR 이름 지정 가능
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    // Spring Boot 관련 의존성들
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    compileOnly 'org.projectlombok:lombok'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
+    
+    // 타임리프 관련 의존성
+    implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
+
+    // JSON 파싱용 라이브러리
+    implementation 'com.google.code.gson:gson:2.12.1'
+
+    // 문자열 수식 그대로 연산하기
+	implementation 'org.apache.commons:commons-jexl3:3.4.0'
+	// PDF변환 라이브러리
+	implementation 'org.xhtmlrenderer:flying-saucer-pdf-openpdf:9.1.22'
+	
+	// HTML 파싱관련
+	implementation 'org.jsoup:jsoup:1.19.1'
+	
+	//war파일을 생성 시 내장 톰킷 라이브러리 제어시키는 설정(외부 배포를 위해)
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+
+    //AWS Systems Manager Parameter Store 의존성 추가
+    implementation 'io.awspring.cloud:spring-cloud-starter-aws-parameter-store-config:2.4.2'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+

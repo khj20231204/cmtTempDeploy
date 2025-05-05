@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제품 목록</title>
+</head>
+<body>
+    <h1>제품 목록</h1>
+	
+    <table border="1">
+        <tr>
+            <th width="50">PDT_CODE</th>
+            <th width="300">PDT_NAME</th>
+            <th width="100">PDT_SPECIFICATION</th>
+            <th width="200">PDT_SHIPPING_PRICE</th>
+            <th width="200">PDT_COMMENTS</th>
+        </tr>
+        <th:block th:each="productList : ${productList}">
+            <tr>
+                <td align="center" th:text="${productList.pdtCode}"></td>
+                <td align="center" th:text="${productList.pdtName}"></td>
+                <td align="center" th:text="${productList.pdtSpecification}"></td>
+				<td align="center" th:text="${productList.pdtShippingPrice}"></td>
+				<td align="center" th:text="${productList.pdtComments}"></td>
+            </tr>
+        </th:block>
+    </table>
+
+    
+</body>
+</html>

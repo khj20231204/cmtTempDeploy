@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.erp.saleMgt.PurchasesOrderMapper">
+    
+    <!-- 발주 메인 SELECT 쿼리 -->
+    <select id="poMainSelect" resultType="com.example.cmtProject.dto.erp.saleMgt.PurchasesOrderMainDTO">
+     SELECT * 
+	    FROM PURCHASES_ORDER P
+	    LEFT JOIN CLIENTS C ON P.CLT_CODE = C.CLT_CODE
+	    LEFT JOIN EMPLOYEES E ON P.EMP_NO = E.EMP_NO
+	    LEFT JOIN WAREHOUSES W ON P.WHS_CODE = W.WHS_CODE
+	    LEFT JOIN MATERIALS M ON P.MTL_CODE = M.MTL_CODE
+	    LEFT JOIN PURCHASES_ORDER_STATUS PS ON P.PO_STATUS = PS.STATUS_CODE
+	    WHERE (C.CLT_TYPE = 'SUPPLIER' OR C.CLT_TYPE IS NULL)
+		AND P.PO_USE_YN = 'Y'
+        ORDER BY P.PO_NO DESC
+    </select>
+    
+    <!-- 발주 메인에서 수정 -->
+    <update id="poMainUpdate" parameterType="com.example.cmtProject.dto.erp.saleMgt.PurchasesOrderEditDTO">
+    UPDATE PURCHASES_ORDER 
+    <set>
+        <if test="columnName == 'poDate'">
+            PO_DATE = TO_DATE(#{value}, 'YY-MM-DD')
+        </if>
+        <if test="columnName == 'whsCode'">
+            WHS_CODE = #{value}
+        </if>
+        <if test="columnName == 'mtlCode'">
+            MTL_CODE = #{value}
+        </if>
+        <if test="columnName == 'cltCode'">
+            CLT_CODE = #{value}
+        </if>
+        <if test="columnName == 'poQty'">
+            PO_QTY = CAST(#{value} AS NUMBER)
+        </if>	
+        <if test="columnName == 'mtlRcvPrice'">
+            MTL_RCV_PRICE = CAST(#{value} AS NUMBER)
+        </if>
+        <if test="columnName == 'poStatus'">
+            PO_STATUS = #{value}
+        </if>
+    </set>
+    WHERE PO_NO = #{poNo}
+	</update>
+	
+	<!-- 발주 메인에서 검색-->
+	<select id="poMainSearch" resultType="com.example.cmtProject.dto.erp.saleMgt.PurchasesOrderMainDTO">
+    SELECT 
+            *
+        FROM PURCHASES_ORDER PO
+	    LEFT JOIN CLIENTS C ON PO.CLT_CODE = C.CLT_CODE
+	    LEFT JOIN EMPLOYEES E ON PO.EMP_NO = E.EMP_NO
+	    LEFT JOIN WAREHOUSES W ON PO.WHS_CODE = W.WHS_CODE
+	    LEFT JOIN MATERIALS M ON PO.MTL_CODE = M.MTL_CODE
+	    LEFT JOIN PURCHASES_ORDER_STATUS PS ON PO.PO_STATUS = PS.STATUS_CODE
+    <where>
+	    C.CLT_TYPE = 'SUPPLIER'
+	    AND PO.PO_USE_YN = 'Y'
+        <if test="poCode != null and poCode != ''">
+            AND PO.PO_CODE = #{poCode}
+        </if>
+        <if test="poNo != null">
+            AND PO.PO_NO = #{poNo}
+        </if>
+        <if test="mtlCode != null and mtlCode != ''">
+            AND PO.MTL_CODE = #{mtlCode}
+        </if>
+        <if test="cltCode != null and cltCode != ''">
+            AND C.CLT_CODE LIKE '%' || #{cltCode} || '%'
+        </if>
+        <if test="poStatus != null and poStatus != ''">
+            AND PO.PO_STATUS = #{poStatus}
+        </if>
+        <if test="dateType == 'poDate' and startDate != null and endDate != null">
+		  AND PO.PO_DATE BETWEEN TO_DATE(#{startDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		                     AND TO_DATE(#{endDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		</if>
+		<if test="dateType == 'shipDate' and startDate != null and endDate != null">
+		  AND PO.MTL_RCV_DATE BETWEEN TO_DATE(#{startDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		                     AND TO_DATE(#{endDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		</if>
+    </where>
+   	ORDER BY PO.PO_NO DESC
+</select>
+</mapper>

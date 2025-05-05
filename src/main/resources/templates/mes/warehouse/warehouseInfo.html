@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>창고 기준정보</title>
+<style>
+    /* 상단 입력 그룹: 검색 및 버튼들을 가로로 배치하며 필요시 줄바꿈 허용 */
+    .top-input-group {
+        display: flex; /* 플렉스박스로 배치 */
+        align-items: flex-start; /* 위쪽 정렬 */
+        justify-content: space-between; /* 좌우 여백 최대 */
+        flex-wrap: wrap; /* 요소가 넘칠 경우 줄바꿈 */
+        gap: 10px; /* 요소 간 간격 */
+        margin-bottom: 15px; /* 하단 여백 */
+    }
+
+    /* 검색 및 파일 관련 그룹: 가로 배치, 줄바꿈 가능 */
+    .search-file-group {
+        display: flex;
+        align-items: center; /* 수직 정렬 */
+        gap: 8px; /* 요소 간 여백 */
+        flex-wrap: wrap; /* 줄바꿈 허용 */
+        flex: 1 1 auto; /* 공간을 적절히 차지하도록 설정 */
+        min-width: 500px; /* 최소 너비 확보 (줄바꿈 방지) */
+    }
+
+    /* CRUD 버튼 그룹: 버튼을 가로로 배치, 줄바꿈 허용 */
+    .button-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* 일반 입력창 스타일: 최대 너비 설정, 반응형 대응 */
+    .form-control {
+        max-width: 200px; /* 최대 너비 제한 */
+        flex: 0 1 auto; /* 내용에 따라 너비 조절 */
+    }
+
+    /* 파일 업로드 입력창 스타일 */
+    .file-input {
+        max-width: 280px;
+        flex: 0 1 auto;
+    }
+
+    /* 엑셀 업로드/다운로드 버튼 스타일 */
+    .btn-excel {
+        background-color: #1D6F42; /* 녹색 배경 */
+        color: white; /* 흰색 텍스트 */
+        white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
+    }
+
+    /* 엑셀 버튼 호버 시 스타일 */
+    .btn-excel:hover {
+        background-color: #15562F; /* 더 어두운 녹색 */
+        color: white;
+    }
+
+    /* 테이블 전체 스타일 */
+    .table {
+        table-layout: fixed; /* 열 너비 고정 */
+        width: 100%; /* 부모 너비에 맞춤 */
+    }
+
+    /* 테이블 스크롤 영역 */
+    .table-responsive {
+         height: 300px; /* 높이 조정 - 마스터-디테일 구조에 맞게 변경 */ 
+         overflow: auto; /* 스크롤 활성화 */ 
+         -webkit-overflow-scrolling: touch; /* 모바일 스크롤 개선 */ 
+     } 
+
+    /* 첫 번째 열(선택 체크박스)의 너비와 정렬 */
+    th:first-child,
+    td:first-child {
+        width: 40px;
+        text-align: center;
+    }
+
+    /* TOAST UI Grid의 비활성 셀 스타일 */
+    .tui-grid-cell-disabled {
+        background-color: #fff !important;
+        color: #212529 !important;
+    }
+
+    /* 선택된 창고 정보 스타일 */
+    #selectedWarehouseInfo {
+        font-weight: bold;
+        margin-left: 10px;
+        color: #3172b9;
+    }
+
+    /* 마스터-디테일 구조를 위한 카드 간격 */
+    .master-detail-container .card {
+        margin-bottom: 1rem;
+    }
+
+    /* 반응형: 화면이 좁을 때의 처리 */
+    @media (max-width: 768px) {
+        .top-input-group {
+            flex-direction: column; /* 세로로 배치 */
+            align-items: flex-start; /* 왼쪽 정렬 */
+        }
+
+        .search-file-group,
+        .button-group {
+            width: 100%; /* 전체 너비 사용 */
+            margin-bottom: 10px; /* 하단 여백 */
+        }
+    }
+</style>
+</head>
+<body>
+    <!-- 
+        layout:fragment="content"는 레이아웃 템플릿에 실제 페이지 내용이 삽입될 위치를 지정합니다.
+        이 부분 안에 페이지별 HTML 내용을 작성하세요.
+    -->
+    <div layout:fragment="content">
+        <h3>창고 기준정보</h3>
+        
+        <div class="master-detail-container">
+            <!-- 창고 기준정보 섹션 (마스터) -->
+            <section class="section">
+                <div class="row" id="basic-table">
+                    <!-- 창고 기준정보 그리드 카드 -->
+                    <div class="col-12 col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="card-title">창고 기준정보 목록</h4>
+                                
+                                <!-- 검색, 파일 업로드, 엑셀 및 CRUD 버튼 -->
+                                <div class="top-input-group">
+                                    <!-- 왼쪽: 검색 및 엑셀 관련 -->
+                                    <div class="search-file-group">
+                                        <input type="text" class="form-control" id="warehouseInput" 
+                                            placeholder="창고명 검색">
+                                        <button type="button" id="warehouseSearchBtn" class="btn btn-outline-primary">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                        
+                                        <!-- 엑셀 파일 입력 및 버튼 -->
+                                        <input type="file" class="form-control file-input" id="warehouseFileInput" accept=".xlsx,.xls">
+                                        <button type="button" id="warehouseExcelUpBtn" class="btn btn-excel">
+                                            <i class="bi bi-file-earmark-arrow-up"></i> 엑셀 업로드
+                                        </button>
+                                        <button type="button" id="warehouseExcelDownBtn" class="btn btn-excel">
+                                            <i class="bi bi-file-earmark-arrow-down"></i> 엑셀 다운로드
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- 오른쪽: CRUD 버튼 -->
+                                    <div class="button-group">
+                                        <button type="button" id="warehouseAppendBtn" class="btn btn-outline-secondary">추가</button>
+                                        <button type="button" id="warehouseSaveBtn" class="btn btn-outline-success">저장</button>
+                                        <button type="button" id="warehouseDeleteBtn" class="btn btn-outline-danger">삭제</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <!-- 창고 정보 그리드 -->
+                                    <div id="warehouseGrid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 위치정보 섹션 (디테일) -->
+            <section class="section mt-3">
+                <div class="row" id="location-table">
+                    <div class="col-12 col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center">
+                                    <h4 class="card-title">창고 위치정보 목록</h4>
+                                    <span id="selectedWarehouseInfo" class="ms-2"></span>
+                                </div>
+                                
+                                <!-- 위치정보 검색 및 CRUD 버튼 -->
+                                <div class="top-input-group mt-2">
+                                    <!-- 왼쪽: 검색 관련 -->
+                                    <div class="search-file-group">
+                                        <input type="text" class="form-control" id="locationInput" 
+                                            placeholder="위치명 검색">
+                                        <button type="button" id="locationSearchBtn" class="btn btn-outline-primary">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- 오른쪽: CRUD 버튼 -->
+                                    <div class="button-group">
+                                        <button type="button" id="locationAppendBtn" class="btn btn-outline-secondary">추가</button>
+                                        <button type="button" id="locationSaveBtn" class="btn btn-outline-success">저장</button>
+                                        <button type="button" id="locationDeleteBtn" class="btn btn-outline-danger">삭제</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <!-- 위치정보 그리드 -->
+                                    <div id="locationGrid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->
+    <th:block layout:fragment="script">
+        <script th:inline="javascript">
+            // Thymeleaf 데이터를 전역 변수로 설정
+            window.warehouseList = /*[[${warehouseList}]]*/[];
+            console.log("warehouseList 데이터:", window.warehouseList);
+        </script>
+        <script src="/js/warehouse/warehouseManager.js"></script>
+        <script src="/js/commonJs/ExcelUtil.js"></script>
+        <script src="/js/commonJs/GridSearchUtil.js"></script>
+    </th:block>
+</body>
+</html>

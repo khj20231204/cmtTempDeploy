@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.erp.saleMgt.SalesOrderMapper">
+    
+     <!-- 수주 메인 SELECT 쿼리 -->
+    <resultMap id="SalesOrderResultMap" type="com.example.cmtProject.dto.erp.saleMgt.SalesOrderMainDTO">
+        <!-- SalesOrder -->
+        <result property="soNo" column="SO_NO"/>
+        <result property="soCode" column="SO_CODE"/>
+        <result property="soDate" column="SO_DATE"/>
+        <result property="shipDate" column="SHIP_DATE"/>
+        <result property="soQty" column="SO_QTY"/>
+        <result property="pdtPrice" column="PDT_PRICE"/>
+        <result property="soValue" column="SO_VALUE"/>
+        <result property="soStatus" column="SO_STATUS"/>
+        <result property="soComments" column="SO_COMMENTS"/>
+
+        <!-- Clients -->
+        <result property="cltNo" column="CLT_NO"/>
+        <result property="cltCode" column="CLT_CODE"/>
+        <result property="cltName" column="CLT_NAME"/>
+        <result property="cltType" column="CLT_TYPE"/>
+
+        <!-- Products -->
+        <result property="pdtNo" column="PDT_NO"/>
+        <result property="pdtCode" column="PDT_CODE"/>
+        <result property="pdtName" column="PDT_NAME"/>
+
+        <!-- Warehouses -->
+        <result property="whsNo" column="WHS_NO"/>
+        <result property="whsCode" column="WHS_CODE"/>
+        <result property="whsName" column="WHS_NAME"/>
+
+        <!-- Employees -->
+        <result property="empNo" column="EMP_NO"/>
+        <result property="empId" column="EMP_ID"/>
+        <result property="empName" column="EMP_NAME"/>
+        
+        <!-- STATUS -->
+        <result property="statusCode" column="STATUS_CODE"/>
+        <result property="statusName" column="STATUS_NAME"/>
+    </resultMap>
+    
+    <!-- 수주 메인 SELECT 쿼리 -->
+    <select id="soMainSelect" resultMap="SalesOrderResultMap">
+        SELECT 
+            SO.SO_NO, SO.SO_CODE, SO.SO_DATE, SO.SHIP_DATE, SO.SO_QTY,
+            SO.PDT_PRICE, SO.SO_VALUE, SO.SO_STATUS, SO.SO_COMMENTS,
+            C.CLT_NO, C.CLT_CODE, C.CLT_NAME,
+            P.PDT_NO, P.PDT_CODE, P.PDT_NAME,
+            W.WHS_NO, W.WHS_CODE, W.WHS_NAME,
+            E.EMP_NO, E.EMP_ID, E.EMP_NAME,
+            S.STATUS_CODE, S.STATUS_NAME  
+        FROM SALES_ORDER SO
+        LEFT JOIN CLIENTS C ON SO.CLT_CODE = C.CLT_CODE
+        LEFT JOIN EMPLOYEES E ON SO.EMP_NO = E.EMP_NO
+        LEFT JOIN PRODUCTS P ON SO.PDT_CODE = P.PDT_CODE
+        LEFT JOIN WAREHOUSES W ON SO.WHS_CODE = W.WHS_CODE
+        LEFT JOIN SALES_ORDER_STATUS S ON SO.SO_STATUS = S.STATUS_CODE
+        WHERE (C.CLT_TYPE = 'ORDER' OR C.CLT_TYPE IS NULL)
+		AND SO.SO_USE_YN = 'Y'
+        ORDER BY SO.SO_NO DESC
+    </select>
+    
+    <!-- 수주 메인에서 수정 -->
+    <update id="soMainUpdate" parameterType="com.example.cmtProject.dto.erp.saleMgt.SalesOrderEditDTO">
+    UPDATE SALES_ORDER 
+    <set>
+        <if test="columnName == 'soDate'">
+                SO_DATE = TO_DATE(#{value}, 'YY-MM-DD')
+        </if>
+        <if test="columnName == 'shipDate'">
+            SHIP_DATE = TO_DATE(#{value}, 'YY-MM-DD')
+        </if>
+        <if test="columnName == 'whsCode'">
+            WHS_CODE = #{value}
+        </if>
+        <if test="columnName == 'pdtCode'">
+            PDT_CODE = #{value}
+        </if>
+        <if test="columnName == 'cltCode'">
+            CLT_CODE = #{value}
+        </if>
+        <if test="columnName == 'soQty'">
+            SO_QTY = #{value}
+        </if>
+        <if test="columnName == 'pdtPrice'">
+            PDT_PRICE = #{value}
+        </if>
+        <if test="columnName == 'soStatus'">
+            SO_STATUS = #{value}
+        </if>
+    </set>
+    WHERE so_no = #{soNo}
+	</update>
+	
+	<!-- 수주 메인에서 검색-->
+	<select id="soMainSearch" resultMap="SalesOrderResultMap">
+    SELECT 
+            SO.SO_NO, SO.SO_CODE, SO.SO_DATE, SO.SHIP_DATE, SO.SO_QTY,
+            SO.PDT_PRICE, SO.SO_VALUE, SO.SO_STATUS, SO.SO_COMMENTS,
+            C.CLT_NO, C.CLT_CODE, C.CLT_NAME,
+            P.PDT_NO, P.PDT_CODE, P.PDT_NAME,
+            W.WHS_NO, W.WHS_CODE, W.WHS_NAME,
+            E.EMP_NO, E.EMP_ID, E.EMP_NAME,
+            S.STATUS_CODE, S.STATUS_NAME  
+        FROM SALES_ORDER SO
+        LEFT JOIN CLIENTS C ON SO.CLT_CODE = C.CLT_CODE
+        LEFT JOIN EMPLOYEES E ON SO.EMP_NO = E.EMP_NO
+        LEFT JOIN PRODUCTS P ON SO.PDT_CODE = P.PDT_CODE
+        LEFT JOIN WAREHOUSES W ON SO.WHS_CODE = W.WHS_CODE
+        LEFT JOIN SALES_ORDER_STATUS S ON SO.SO_STATUS = S.STATUS_CODE
+    <where>
+	    C.CLT_TYPE = 'ORDER' 
+    	AND SO.SO_VISIBLE = 'Y'
+        <if test="soCode != null and soCode != ''">
+            AND SO.SO_CODE = #{soCode}
+        </if>
+        <if test="soNo != null">
+            AND SO.SO_NO = #{soNo}
+        </if>
+        <if test="pdtCode != null and pdtCode != ''">
+            AND SO.PDT_CODE = #{pdtCode}
+        </if>
+        <if test="cltCode != null and cltCode != ''">
+            AND C.CLT_CODE LIKE '%' || #{cltCode} || '%'
+        </if>
+        <if test="soStatus != null and soStatus != ''">
+            AND SO.SO_STATUS = #{soStatus}
+        </if>
+        <if test="dateType == 'soDate' and startDate != null and endDate != null">
+		  AND SO.SO_DATE BETWEEN TO_DATE(#{startDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		                     AND TO_DATE(#{endDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		</if>
+		<if test="dateType == 'shipDate' and startDate != null and endDate != null">
+		  AND SO.SHIP_DATE BETWEEN TO_DATE(#{startDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		                     AND TO_DATE(#{endDate, jdbcType=VARCHAR}, 'YY-MM-DD')
+		</if>
+    </where>
+    ORDER BY SO.SO_NO DESC
+	</select>
+	
+	
+	
+</mapper>

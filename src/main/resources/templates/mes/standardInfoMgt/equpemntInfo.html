@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+<meta charset="UTF-8">
+	<!-- 최신 xlsx 스크립트 CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body>
+<div layout:fragment="content">
+
+	<h3>공정 라인 정보</h3>
+	
+	<div class="card">
+	    <div class="card-header">
+	        <h5 class="card-title">라인 목록</h5>
+	    </div>
+	    <div class="card-body"> <!-- 여기에 내용작성 -->
+			<div class="row mb-3"> <!-- 검색박스 -->
+		        <div class="col-md-3">
+		            <input type="month" class="form-control" placeholder="등록월">
+		        </div>
+		        <div class="col-md-4">
+		            <div class="input-group">
+		                <input type="text" class="form-control" placeholder="공정 라인을 입력해주세요.">
+		                <button class="btn btn-outline-secondary" type="button">
+		                    <i class="bi bi-search"></i>
+		                </button>
+		            </div>
+		        </div>
+		    </div><!-- /검색박스 -->
+		    <div class="text-end" sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')"> <!-- 거래처등록 버튼 -->
+			    <button class="btn btn-primary btn-m" id="regeWork" data-bs-toggle="modal" data-bs-target="#workModal"><i class="fa-solid fa-person-walking-luggage"></i> 설비 등록</button>
+			    <button class="btn btn-outline-danger  btn-m" id="deleteClient" onclick="deleteClient()"><i class="fa-solid fa-trash-can"></i> 설비 삭제</button>
+			</div><!-- 설비 등록 버튼 -->
+			<hr>
+	    </div><!-- /card-body -->
+	</div><!-- /card -->
+	
+	<h6 class="section-title">상품</h6>
+	<!-- grid 사용-->
+	<div th:replace="~{fragments/gridLayout :: tuiGrid('eqpGrid', ${eqpGridOptions})}"></div>
+	<!--<div th:replace="~{fragments/gridLayout :: tuiGrid('pdtGrid', ${pdtGridOptions})}"></div>-->
+
+
+	<!-- 모달 -->
+	<div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	    <div class="modal-dialog modal-dialog-centered modal-lg">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="exampleModalCenterTitle">거래처 등록</h5>
+	            </div>
+	            <form action="/clientInfoForm" method="POST">
+	            <div class="modal-body">
+	                <div class="form-group">
+                        <label for="basicInput">거래처 구분</label>
+                        <select class="form-select" id="basicSelect" name="cltType">
+                            <option value="SUPPLIER">수주</option>
+                            <option value="ORDER">발주</option>
+                            <option value="ect">기타</option>
+                        </select>
+                    </div>
+	            </div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">닫기</span>
+	                </button>
+	                <button type="submit" class="btn btn-primary ms-1" >
+	                    <span class="d-none d-sm-block">등록</span>
+	                </button>
+	            </div>
+	            </form>
+	        </div>
+	    </div>
+	</div><!-- /모달 -->
+	
+	<script th:inline="javascript">
+		document.addEventListener("DOMContentLoaded", function () {
+	         // gridId가 pdtGrid라고 가정
+	         window.lineGrid.on('click', ev => {
+				
+	             const rowKey = ev.rowKey;
+	             const rowData = window.lineGrid.getRow(rowKey);
+	
+	             if (rowData) {
+	                 let productCode = rowData.pdtCode; // 예: PDT_CODE 컬럼
+	                 console.log("선택된 제품코드:", productCode);
+	
+					 
+	                 // AJAX 요청으로 BOM 데이터 불러오기
+	                 
+	             }
+	         });
+	     });  
+		
+	</script>
+	
+</div> <!-- /layout:fragment -->
+</body>
+</html>

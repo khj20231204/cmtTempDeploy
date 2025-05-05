@@ -1,0 +1,29 @@
+
+
+<!-- 유효성 체크 -->
+
+<form action="join" method="post" onsubmit="return check()">
+    <input type="text" name="empName" id="username" placeholder="Username" /><br/>
+    <input type="password" name="empPassword" id="pwd" placeholder="Password" /><br/>
+	<select name="role">
+		<option value="USER">user</option>
+		<option value="MANAGER">manager</option>
+		<option value="ADMIN">admin</option>
+	</select>
+	
+    <input type="submit" value="확인	">
+</form>
+
+<script>
+	function check(){
+		
+		let username = document.getElementById("username").value;
+		let pwd = document.getElementById("pwd").value;
+		
+		if(username.trim() === "" || pwd.trim() === "")
+		{
+			alert("입력");
+			return false;
+		}
+	}	
+</script>

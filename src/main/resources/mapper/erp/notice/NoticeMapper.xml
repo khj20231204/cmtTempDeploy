@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ProductMapper.java 경로로 클래스명 ProductMapper까지 입력@@@@@@@@@@@@ --> 
+<mapper namespace="com.example.cmtProject.mapper.erp.notice.NoticeMapper">
+
+
+	<insert id="insertNotice" parameterType="com.example.cmtProject.dto.erp.notice.NoticeDTO">
+		INSERT INTO notice (
+		    title,
+		    content,
+		    emp_id,
+		    emp_name,
+		    dept_no,
+		    position_no,
+<!-- 		    view_count, -->
+<!-- 		    is_pinned, -->
+<!-- 		    created_at, -->
+		    created_at
+		) VALUES (
+		    #{title},
+		    #{content},
+		    #{empId,jdbcType=VARCHAR},
+		    #{empName},
+		    #{deptNo},
+		    #{positionNo},
+<!-- 		    #{viewCount,jdbcType=INTEGER}, -->
+<!-- 		    #{isPinned,jdbcType=VARCHAR}, -->
+		    SYSTIMESTAMP
+		)
+	
+	</insert>
+	
+	<select id="selectNoti" parameterType="com.example.cmtProject.dto.erp.notice.NoticeDTO">
+		SELECT 
+	        n.notice_id AS noticeId,
+	        n.title,
+	        CAST(n.content AS VARCHAR(4000)) AS content, <!-- HTML을 CLOB으로 받아와서 변환시켜줘야함 -->
+<!-- 			n.content, -->
+	        n.emp_name AS empName,
+	        n.emp_id AS empId,
+	        d.cmn_detail_name AS deptName,
+	        p.cmn_detail_name AS positionName,
+	        n.created_at AS createdAt
+	    FROM notice n
+	    LEFT JOIN commoncode_detail d 
+	        ON TO_CHAR(n.dept_no) = d.cmn_detail_code AND d.cmn_code = 'DEPT'
+	    LEFT JOIN commoncode_detail p 
+	        ON TO_CHAR(n.position_no) = p.cmn_detail_code AND p.cmn_code = 'POSITION'
+	    WHERE n.notice_id = #{id}
+		
+	</select>
+	
+	<delete id="deleteNoti" parameterType="long">
+		DELETE FROM NOTICE
+		WHERE NOTICE_ID = #{noticeId}
+	
+	</delete>
+
+</mapper>

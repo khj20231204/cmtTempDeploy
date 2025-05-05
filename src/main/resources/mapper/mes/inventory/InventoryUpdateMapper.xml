@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.cmtProject.mapper.mes.inventory.InventoryUpdateMapper">
+    <!-- 입고 검사 업데이트 쿼리 -->
+    <update id="updateReceiptStatus" parameterType="String">
+        UPDATE MATERIAL_RECEIPT mr
+        SET mr.RECEIPT_STATUS = 
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM IQC i 
+                    WHERE i.RECEIPT_CODE = mr.RECEIPT_CODE 
+                    AND i.IQC_INSPECTION_STATUS = '검사완료'
+                    AND i.IQC_INSPECTION_RESULT = '합격'
+                ) THEN '검사 합격'
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM IQC i 
+                    WHERE i.RECEIPT_CODE = mr.RECEIPT_CODE 
+                    AND i.IQC_INSPECTION_STATUS = '검사완료'
+                    AND i.IQC_INSPECTION_RESULT = '불합격'
+                ) THEN '검사 불합격'
+                ELSE mr.RECEIPT_STATUS
+            END
+        WHERE mr.RECEIPT_CODE = #{receiptCode}
+        AND EXISTS (
+            SELECT 1 
+            FROM IQC i 
+            WHERE i.RECEIPT_CODE = mr.RECEIPT_CODE 
+            AND i.IQC_INSPECTION_STATUS = '검사완료'
+        )
+    </update>
+    
+    <!-- 출고검사 업데이트 쿼리 -->
+    <update id="updateIssueStatus" parameterType="String">
+        UPDATE PRODUCTS_ISSUE PI
+        SET PI.ISSUE_STATUS = 
+            CASE 
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM FQC F 
+                    WHERE F.WO_CODE = PI.ISSUE_CODE 
+                    AND F.FQC_INSPECTION_STATUS = '검사완료'
+                    AND F.FQC_INSPECTION_RESULT = '합격'
+                ) THEN '검사 합격'
+                WHEN EXISTS (
+                    SELECT 1 
+                    FROM FQC F 
+                    WHERE F.WO_CODE = PI.ISSUE_CODE 
+                    AND F.FQC_INSPECTION_STATUS = '검사완료'
+                    AND F.FQC_INSPECTION_RESULT = '불합격'
+                ) THEN '검사 불합격'
+                ELSE PI.ISSUE_STATUS
+            END
+        WHERE PI.ISSUE_CODE = #{issueCode}
+        AND EXISTS (
+            SELECT 1 
+            FROM FQC F 
+            WHERE F.WO_CODE = PI.ISSUE_CODE 
+            AND F.FQC_INSPECTION_STATUS = '검사완료'
+        )
+    </update>
+    
+    <!-- 판매주문에 따른 BOM 항목 목록 조회 -->
+    <select id="getBomItems" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT 
+            B.PARENT_PDT_CODE,
+            B.BOM_QTY,
+            CASE WHEN B.PARENT_PDT_CODE LIKE 'MTL%' THEN 'MATERIAL' ELSE 'PRODUCT' END AS ITEM_TYPE
+        FROM BOM B
+        START WITH B.CHILD_ITEM_CODE = (
+            SELECT PDT_CODE
+            FROM SALES_ORDER
+            WHERE SO_CODE = #{soCode}
+        )
+        CONNECT BY PRIOR B.PARENT_PDT_CODE = B.CHILD_ITEM_CODE
+        ORDER SIBLINGS BY B.PARENT_PDT_CODE
+    </select>
+    
+    <!-- 자재 재고 할당 수량 업데이트 (FIFO 기반) -->
+    <update id="updateMaterialAllocatedQty" parameterType="java.util.Map">
+        UPDATE MATERIAL_INVENTORY
+        SET 
+            ALLOCATED_QTY = TO_CHAR(TO_NUMBER(NVL(ALLOCATED_QTY, '0')) + TO_NUMBER(#{allocatedQty})),
+            UPDATED_BY = #{updatedBy},
+            UPDATED_DATE = SYSDATE
+        WHERE 
+            MTL_CODE = #{mtlCode}
+    </update>
+    
+    <!-- 제품 재고 할당 수량 업데이트 -->
+    <update id="updateProductAllocatedQty" parameterType="java.util.Map">
+        MERGE INTO PRODUCTS_INVENTORY INVEN
+        USING (
+            SELECT
+                BOM.PARENT_PDT_CODE,
+                TO_NUMBER(BOM.BOM_QTY) * #{soQty} AS REQUIRED_QTY
+            FROM (
+                SELECT
+                    B.PARENT_PDT_CODE,
+                    B.BOM_QTY
+                FROM BOM B
+                START WITH B.CHILD_ITEM_CODE = (
+                    SELECT PDT_CODE
+                    FROM SALES_ORDER
+                    WHERE SO_CODE = #{soCode}
+                )
+                CONNECT BY PRIOR B.PARENT_PDT_CODE = B.CHILD_ITEM_CODE
+            ) BOM
+            WHERE BOM.PARENT_PDT_CODE NOT LIKE 'MTL%'
+        ) SRC
+        ON (INVEN.PDT_CODE = SRC.PARENT_PDT_CODE)
+        WHEN MATCHED THEN
+            UPDATE SET
+                INVEN.ALLOCATED_QTY = TO_CHAR(TO_NUMBER(NVL(INVEN.ALLOCATED_QTY, '0')) + SRC.REQUIRED_QTY),
+                INVEN.UPDATED_BY = #{updatedBy},
+                INVEN.UPDATED_DATE = SYSDATE
+    </update>
+</mapper>

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.erp.attendanceMgt.WorkTimeMapper">
+
+
+	<!-- 어드민 모든 출결 정보 조회 -->
+	<select id="getAllAttends" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		SELECT 
+		    W.WKT_NO, 
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    W.WKT_DATE, 
+		    WT.WT_START_TIME, 
+		    WT.WT_END_TIME, 
+		    W.WKT_STATUS, 
+		    C_TYPE.CMN_DETAIL_NAME AS WKT_TYPE_NAME,
+		    W.WKT_REMARKS
+		FROM WORK_TIMES W
+		JOIN EMPLOYEES E ON W.EMP_NO = E.EMP_NO
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON W.WKT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!-- 	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		
+<!-- 	근무 일정 조인 -->
+		JOIN WORK_TEMPLATES WT ON WT.WT_TYPE = W.WKT_TYPE
+		ORDER BY W.WKT_NO DESC
+	</select>
+	
+	<!-- 매니저 같은 부서 출결 정보 조회 -->
+	<select id="getAttendsByDept" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		SELECT 
+		    W.WKT_NO, 
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    W.WKT_DATE, 
+		    W.WKT_START_TIME, 
+		    W.WKT_END_TIME, 
+		    W.WKT_STATUS, 
+		    C_TYPE.CMN_DETAIL_NAME AS WKT_TYPE_NAME,
+		    W.WKT_REMARKS
+		FROM WORK_TIMES W
+		JOIN EMPLOYEES E ON W.EMP_NO = E.EMP_NO
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON W.WKT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!-- 	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.DEPT_NO = #{deptNo}
+		ORDER BY W.WKT_NO DESC
+	</select>
+	
+	<!-- 유저 개인 출결 정보 조회 -->
+	<select id="getAttendsByEmpNo" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		SELECT 
+		    W.WKT_NO, 
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    W.WKT_DATE, 
+		    W.WKT_START_TIME, 
+		    W.WKT_END_TIME, 
+		    W.WKT_STATUS, 
+		    C_TYPE.CMN_DETAIL_NAME AS WKT_TYPE_NAME,
+		    W.WKT_REMARKS
+		FROM WORK_TIMES W
+		JOIN EMPLOYEES E ON W.EMP_NO = E.EMP_NO
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON W.WKT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!-- 	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.EMP_NO = #{empNo}
+		ORDER BY W.WKT_NO DESC
+	</select>
+	
+	
+	<!-- 모달창, 이미 설정된 사원 빼고 사원 출결 정보 조회 -->
+	<select id="getAllAttendsModal" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		SELECT 
+		    W.WKT_NO, 
+		    E.EMP_ID, 
+		    E.EMP_NO, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    C_TYPE.CMN_DETAIL_NAME AS WKT_TYPE_NAME
+		FROM EMPLOYEES E
+		LEFT JOIN WORK_TIMES W ON W.EMP_NO = E.EMP_NO
+		LEFT JOIN COMMONCODE_DETAIL C_TYPE ON W.WKT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		LEFT JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+        WHERE W.WKT_TYPE IS NULL
+		ORDER BY E.EMP_NO DESC
+	</select>
+	
+	<!-- 모달창, 이미 설정된 사원 빼고 같은 부서 출결 정보 조회 -->
+	<select id="getAllAttendsModalByDept" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		SELECT 
+		    W.WKT_NO, 
+		    E.EMP_ID, 
+		    E.EMP_NO, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    C_TYPE.CMN_DETAIL_NAME AS WKT_TYPE_NAME
+		FROM EMPLOYEES E
+		LEFT JOIN WORK_TIMES W ON W.EMP_NO = E.EMP_NO
+		LEFT JOIN COMMONCODE_DETAIL C_TYPE ON W.WKT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		LEFT JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+        WHERE W.WKT_TYPE IS NULL AND E.DEPT_NO = #{deptNo}
+		ORDER BY E.EMP_NO DESC
+	</select>
+	
+	<!-- 근무 일정 템플릿 조회 -->
+	<select id="getAllWorkTemplate" resultType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTemplateDTO">
+		SELECT
+			W.WT_NO,
+			W.WT_NAME,
+			W.WT_START_TIME,
+			W.WT_END_TIME,
+            W.WT_WORK_TIME,
+			C_TYPE.CMN_DETAIL_NAME AS WT_TYPE
+		FROM WORK_TEMPLATES W
+		JOIN COMMONCODE_DETAIL C_TYPE ON W.WT_TYPE = C_TYPE.CMN_DETAIL_CODE
+		ORDER BY W.WT_NO DESC
+	</select>
+	
+	
+	<insert id="saveWorkTemplates" parameterType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTemplateDTO">
+        INSERT INTO WORK_TEMPLATES (
+           WT_NAME, WT_START_TIME, WT_END_TIME, WT_WORK_TIME, WT_TYPE
+        )
+        VALUES (
+           #{wtName}, #{wtStartTime}, #{wtEndTime}, #{wtWorkTime}, #{wtType}
+        )
+    </insert>
+	
+	
+	
+	
+	
+	
+	
+	<!-- 유저 근무 시간 정보 저장 -->
+	<insert id="insertWktTypeByEmpNo" parameterType="com.example.cmtProject.dto.erp.attendanceMgt.WorkTimeDTO">
+		INSERT INTO WORK_TIMES (
+        EMP_NO,
+        WKT_TYPE
+    ) VALUES (
+        #{empNo},
+        #{wktType}
+    )
+	</insert>
+	
+	<!-- 유저 근무 시간 정보 수정 -->
+	<update id="updateWktTypeByEmpNo">
+		UPDATE WORK_TIMES
+        SET WKT_TYPE = #{wktType}
+        WHERE EMP_NO = #{empNo}
+	</update>
+	
+	
+	
+	
+	
+	<!-- 사원 NO를 토대로 근무 일정 추출 -->
+	<select id="getWorkTemplateByEmpNo" resultType="java.time.LocalDateTime">
+		SELECT WT.WT_START_TIME
+		FROM WORK_TEMPLATES WT
+		JOIN WORK_TIMES W ON W.WKT_TYPE = WT.WT_TYPE 
+		WHERE EMP_NO = #{empNo}
+	</select>
+    
+
+	
+</mapper>

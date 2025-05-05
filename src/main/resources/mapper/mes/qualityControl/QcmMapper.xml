@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.mes.qualityControl.QcmMapper">
+
+	<!-- qcm모든 리스트 -->
+	<select id="getAllQcm" resultType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+		SELECT Q.QCM_NO,
+			   Q.QCM_CODE,
+			   Q.QCM_NAME,
+			   Q.MTL_NAME,
+			   Q.PDT_NAME,
+			   Q.QCM_TARGET_VALUE,
+			   Q.QCM_MAX_VALUE,
+			   Q.QCM_MIN_VALUE,
+			   C_UNIT_LENGTH.CMN_DETAIL_NAME AS QCM_UNIT_LENGTH,
+			   C_UNIT_WEIGHT.CMN_DETAIL_NAME AS QCM_UNIT_WEIGHT,
+			   Q.QCM_METHOD
+		FROM QCM Q
+		LEFT JOIN COMMONCODE_DETAIL C_UNIT_LENGTH ON C_UNIT_LENGTH.CMN_DETAIL_NAME = Q.QCM_UNIT_LENGTH
+		LEFT JOIN COMMONCODE_DETAIL C_UNIT_WEIGHT ON C_UNIT_WEIGHT.CMN_DETAIL_NAME = Q.QCM_UNIT_WEIGHT	
+		ORDER BY Q.QCM_NO DESC
+	</select>
+	
+	<!-- 커먼코드 디테일 단위 길이 리스트 -->
+	<select id="getUnitLengthList" resultType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+		SELECT CMN_DETAIL_NAME
+		FROM COMMONCODE_DETAIL
+		WHERE CMN_CODE = 'UNIT_LENGTH'
+		ORDER BY CMN_DETAIL_CODE
+	</select>
+	
+	<!-- 커먼코드 디테일 단위 무게 리스트 -->
+	<select id="getUnitWeightList" resultType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+		SELECT CMN_DETAIL_NAME
+		FROM COMMONCODE_DETAIL
+		WHERE CMN_CODE = 'UNIT_WEIGHT'
+		ORDER BY CMN_DETAIL_CODE
+	</select>
+	
+	<!-- qcmCode가 있는지 판단 -->
+	<select id="existsByQcmCode" resultType="String" parameterType="Long">
+	  SELECT QCM_CODE
+	  FROM QCM
+	  WHERE QCM_NO = #{qcmNo}
+	</select>
+	
+	<!-- qcm 그리드 업데이트 -->
+	<update id="qcmUpdate" parameterType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+		UPDATE QCM
+	    <set>
+	    	<if test="columnName eq 'qcmName'">
+	            QCM_NAME = #{value}
+	        </if>
+	        <if test="columnName eq 'mtlName'">
+	            MTL_CODE = (
+			        SELECT MTL_CODE
+			        FROM MATERIALS
+			        WHERE MTL_NAME = #{value}
+			        FETCH FIRST 1 ROWS ONLY
+			      ),
+			      MTL_NAME = #{value}
+	        </if>
+	        <if test="columnName eq 'pdtName'">
+	            PDT_CODE = (
+			        SELECT PDT_CODE
+			        FROM PRODUCTS
+			        WHERE PDT_NAME = #{value}
+			        FETCH FIRST 1 ROWS ONLY
+			      ),
+			      PDT_NAME = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmTargetValue'">
+	            QCM_TARGET_VALUE = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmMaxValue'">
+	            QCM_MAX_VALUE = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmMinValue'">
+	            QCM_MIN_VALUE = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmUnitLength'">
+	            QCM_UNIT_LENGTH = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmUnitWeight'">
+	            QCM_UNIT_WEIGHT = #{value}
+	        </if>
+	        <if test="columnName eq 'qcmMethod'">
+	            QCM_METHOD = #{value}
+	        </if>
+	    </set>
+	    WHERE QCM_NO = #{qcmNo}
+	</update>
+	
+	<!-- qcm 정보 입력 -->
+	<insert id="qcmInsert" parameterType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+	    INSERT INTO QCM (
+	    	QCM_NO,
+	        QCM_CODE, 
+	        QCM_NAME, 
+	        MTL_NAME, 
+	        PDT_NAME,
+	        QCM_TARGET_VALUE, 
+	        QCM_MAX_VALUE, 
+	        QCM_MIN_VALUE,
+	        QCM_UNIT_WEIGHT, 
+	        QCM_UNIT_LENGTH, 
+	        QCM_METHOD
+	    ) VALUES (
+	    	#{qcmNo},
+	        #{qcmCode}, 
+	        #{qcmName}, 
+	        #{mtlName}, 
+	        #{pdtName},
+	        #{qcmTargetValue},
+			#{qcmMaxValue}, 
+			#{qcmMinValue},
+	        #{qcmUnitWeight},
+	        #{qcmUnitLength},
+	        #{qcmMethod}
+	    )
+	</insert>
+	
+	<!-- 특정 QCM이름 가져오기 -->
+	<select id="getQcmNamesByMtlName" resultType="map">
+		SELECT 
+			QCM_NAME,
+			QCM_UNIT_LENGTH,
+			QCM_UNIT_WEIGHT 
+		FROM QCM 
+		WHERE MTL_NAME = #{mtlName}
+	</select>
+
+	<!-- 특정 QCM이름 가져오기 -->
+	<select id="getQcmNamesByPdtName" resultType="map">
+		SELECT 
+			QCM_NAME,
+			QCM_UNIT_LENGTH,
+			QCM_UNIT_WEIGHT 
+		FROM QCM 
+		WHERE PDT_NAME = #{pdtName}
+	</select>
+	
+	
+	
+	<!-- 엑셀 데이터 업데이트 -->
+	<update id="saveExcelData" parameterType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+		UPDATE QCM
+	    SET
+	        QCM_CODE         = #{qcmCode},
+	        QCM_NAME         = #{qcmName},
+	        MTL_NAME         = #{mtlName},
+	        PDT_NAME         = #{pdtName},
+	        QCM_TARGET_VALUE = #{qcmTargetValue},
+	        QCM_MAX_VALUE    = #{qcmMaxValue},
+	        QCM_MIN_VALUE    = #{qcmMinValue},
+	        QCM_UNIT_WEIGHT  = #{qcmUnitWeight},
+	        QCM_UNIT_LENGTH  = #{qcmUnitLength},
+	        QCM_METHOD       = #{qcmMethod}
+	    WHERE QCM_NO = #{qcmNo}
+	</update>
+
+
+
+
+</mapper>

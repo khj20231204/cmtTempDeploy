@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+<meta charset="UTF-8">
+	<!-- 최신 xlsx 스크립트 CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body>
+<div layout:fragment="content">
+
+	<h3>거래처 정보</h3>
+	
+	<div class="card">
+		    <div class="card-header">
+		        <h5 class="card-title">거래처 목록</h5>
+		    </div>
+		    <div class="card-body"> <!-- 여기에 내용작성 -->
+		    
+			<div class="row mb-3"> <!-- 검색박스 -->
+		        <div class="col-md-3">
+		            <input type="month" class="form-control" placeholder="등록월">
+		        </div>
+		        <div class="col-md-4">
+		            <div class="input-group">
+		                <input type="text" class="form-control" placeholder="거래처 이름을 입력해주세요.">
+		                <button class="btn btn-outline-secondary" type="button">
+		                    <i class="bi bi-search"></i>
+		                </button>
+		            </div>
+		        </div>
+		    </div><!-- /검색박스 -->
+		    <div class="text-end"> <!-- 거래처등록 버튼 -->
+			    <button class="btn btn-primary btn-m" id="regeWork" data-bs-toggle="modal" data-bs-target="#workModal"><i class="fa-solid fa-person-walking-luggage"></i> 거래처 등록</button>
+			</div><!-- 거래처 등록 버튼 -->
+		    </div><!-- /card-body -->
+	</div><!-- /card -->
+
+	<!-- 모달 -->
+	<div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	    <div class="modal-dialog modal-dialog-centered modal-lg">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="exampleModalCenterTitle">거래처 등록</h5>
+	            </div>
+	            <div class="modal-body">
+	                <div class="form-group">
+                        <label for="basicInput">거래처 구분</label>
+                        <select class="form-select" id="basicSelect">
+                            <option>수주</option>
+                            <option>발주</option>
+                            <option>기타</option>
+                        </select>
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">거래처명</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="거래처명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">대표자명</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="대표자명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">담당자명</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="담당자명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">전화번호</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="전화번호">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">이메일</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="이메일">
+                    </div>
+                    <div class="form-group">
+	                    <label for="basicInput">주소</label>
+						<div class="form-item">
+							<input type="text" id="empAddress1" name="empAddress1" class="form-control" size="25" th:value="*{empAddress1}">
+							<input type="text" id="empPostCode" name="empPostCode" class="form-control" size="6" th:value="*{empPostCode}" readonly><br>
+							<input type="button" value="주소검색" onclick="search_address()" class="btn btn-primary btnAddress"><br>
+						</div>
+						<div class="form-item">
+		                    <label for="empAddress2"></label>
+							<div class="form-item">
+								<input type="text" id="empAddress2" name="empAddress2" class="form-control" size="25" th:value="*{empAddress2}" placeholder="상세주소">
+							</div>
+						</div>
+					</div>
+					<div class="form-group">
+                        <label for="basicInput">메모</label>
+                        <input type="text" class="form-control" id="basicInput" placeholder="">
+                    </div>
+
+	            </div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">닫기</span>
+	                </button>
+	                <button type="button" class="btn btn-primary ms-1" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">등록</span>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+	</div><!-- /모달 -->
+	
+
+</div> <!-- /layout:fragment -->
+</body>
+</html>

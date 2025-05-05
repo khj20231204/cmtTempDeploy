@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+    
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기안서 작성</title>
+    
+    <!-- 페이지별 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- 페이지 내용 작성 영역 시작 -->
+        <h3>기안서 작성</h3>
+        <p class="text-subtitle text-muted">새 문서를 작성하고 결재를 요청하세요</p>
+
+        <form id="documentForm">
+            <input type="hidden" id="docId" name="docId" th:value="${documentDTO.docId}" />
+            <input type="hidden" id="docNumber" name="docNumber" th:value="${documentDTO.docNumber}" />
+            
+            <!-- 기본 정보 카드 -->
+            <div class="card">
+                <div class="card-header">
+                    <h4>기본 정보</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-group row mb-4">
+                        <label class="col-form-label col-md-2">문서 양식 <span class="text-danger">*</span></label>
+                        <div class="col-md-10">
+                            <select id="formId" name="formId" class="form-select" required>
+                                <option value="">양식 선택</option>
+                                <option th:each="form : ${forms}" 
+                                        th:value="${form.formId}" 
+                                        th:text="${form.formId}"
+                                        th:selected="${form.formId == documentDTO.formId}">양식</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group row mb-4">
+                        <label class="col-form-label col-md-2">제목 <span class="text-danger">*</span></label>
+                        <div class="col-md-10">
+                            <input type="text" id="title" name="title" class="form-control" th:value="${documentDTO.title}" required />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 결재선 카드 -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between">
+                    <h4>결재선</h4>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnAddApprover">
+                        <i class="bi bi-plus"></i> 결재자 추가
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="approvalLineTable">
+                            <thead>
+                                <tr>
+                                    <th width="10%">순서</th>
+                                    <th width="30%">결재자</th>
+                                    <th width="25%">직위</th>
+                                    <th width="25%">결재타입</th>
+                                    <th width="10%">삭제</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 결재선 목록은 JavaScript에서 동적으로 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 문서 내용 카드 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h4>문서 내용</h4>
+                </div>
+                <div class="card-body">
+                    <textarea id="contentEditor" name="content" class="form-control" th:text="${documentDTO.content}"></textarea>
+                </div>
+            </div>
+            
+            <!-- 첨부파일 카드 -->
+<!--            <div class="card mt-4">-->
+<!--                <div class="card-header">-->
+<!--                    <h4>첨부파일</h4>-->
+<!--                </div>-->
+<!--                <div class="card-body">-->
+<!--                    <div class="input-group mb-3">-->
+<!--                        <input type="file" class="form-control" id="fileInput" multiple>-->
+<!--                        <button class="btn btn-outline-secondary" type="button" id="btnAddFiles">파일 첨부</button>-->
+<!--                    </div>-->
+                    
+<!--                    <div class="mt-3 border rounded p-3" id="fileList">-->
+<!--                        <div class="text-muted text-center">첨부된 파일이 없습니다</div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+            
+            <!-- 버튼 영역 -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+<!--                <button type="button" id="btnTempSave" class="btn btn-secondary">-->
+<!--                    임시저장-->
+<!--                </button>-->
+                <button type="button" id="btnSubmit" class="btn btn-primary">
+                    결재요청
+                </button>
+            </div>
+        </form>
+        <!-- 페이지 내용 작성 영역 끝 -->
+    </div>
+
+    <!-- 페이지별 JavaScript 추가 영역 -->
+
+    <th:block layout:fragment="script">
+        <!-- Summernote 에디터 스크립트 -->
+        <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+        
+        <!-- Thymeleaf 인라인 스크립트로 초기 데이터 설정 -->
+        <script th:inline="javascript">
+            // Thymeleaf 데이터를 전역 변수로 설정
+            window.documentData = {
+                docId: /*[[${documentDTO.docId}]]*/ '',
+                docNumber: /*[[${documentDTO.docNumber}]]*/ '',
+                formId: /*[[${documentDTO.formId}]]*/ '',
+                title: /*[[${documentDTO.title}]]*/ '',
+                content: /*[[${documentDTO.content}]]*/ '',
+                approvalLines: /*[[${documentDTO.approvalLines}]]*/ []
+            };
+        </script>
+		
+		<!-- 템플릿 처리 스크립트 추가 -->
+		<script src="/js/eapproval/templateProcessor.js"></script>
+        
+        <!-- 모듈 JS 파일 - 수정 부분 -->
+        <script src="/js/eapproval/formContentLoader.js"></script>
+        <script src="/js/eapproval/approvalLineManager.js"></script>
+<!--        <script src="/js/eapproval/attachmentManager.js"></script>-->
+        <script src="/js/eapproval/documentFormManager.js"></script>
+        <script src="/js/eapproval/documentForm.js"></script>
+    </th:block>
+</body>
+</html>

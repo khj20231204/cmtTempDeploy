@@ -1,0 +1,134 @@
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+
+	  
+	  
+	  
+<th:block layout:fragment="css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.css">
+    <style>
+        /* 기존 CSS 스타일들 여기 */
+    </style>
+</th:block>
+
+
+
+
+<div layout:fragment="content">
+    <!-- 기존 form, 버튼, 그리드 등 다 여기 -->
+     <h3>공지사항 작성</h3>
+     
+    	<form action="/noticeForm" method="post" id="noticeForm">
+    	
+			 <!-- 문서 내용 카드 -->
+            <div class="card mt-4">
+			    <div class="card-header d-flex align-items-center gap-3">
+			        <h6 class="mb-0">사번</h6>
+			        <input type="hidden" name="empId" th:value="${loginUser.empId}">
+			        <span th:text="${loginUser.empId}"></span>
+			
+			        <h6 class="mb-0">작성자</h6>
+			        <input type="hidden" name="empName" th:value="${loginUser.empName}">
+			        <span th:text="${loginUser.empName}"></span>
+			    </div>
+			
+			    <div class="card-header d-flex align-items-center gap-3">
+			        <h6 class="mb-0">부서</h6>
+			        <input type="hidden" name="deptNo" th:value="${loginUser.deptNo}">
+			        <input type="hidden" name="deptName" th:value="${loginUser.deptName}">
+			        <span th:text="${loginUser.deptName}"></span>
+			
+			        <h6 class="mb-0">직급 </h6>
+			        <input type="hidden" name="positionNo" th:value="${loginUser.positionNo}">
+			        <input type="hidden" name="deptPosition" th:value="${loginUser.deptPosition}">
+			        <span th:text="${loginUser.deptPosition}"></span>
+			    </div>
+
+    <div class="card-header d-flex align-items-center gap-3">
+        <h6 class="mb-0">작성일</h6>
+        <input type="date" class="form-control" name="createdAt" th:value="${today}" required style="max-width: 300px;">
+    </div>
+</div>
+            
+			<div class="card mt-4">
+			
+			
+	            <div class="card-header d-flex align-items-center gap-3">
+				    <h4 class="mb-0">제목</h4>
+				    <input type="text" id="title" class="form-control" name="title" required style="max-width: 800px;">
+				</div>
+                <div class="card-header">
+                <h4>공지사항 내용</h4>
+                </div>
+                <div class="card-body">
+                    <textarea id="contentEditor" name="content" class="form-control"></textarea>
+                </div>
+            </div>
+            
+    		
+    		<div class="d-flex justify-content-center gap-2 mt-4">
+			    <input type="button" value="돌아가기" onclick="location.href='/noticeList'" class="btn btn-secondary">
+			    <button type="button" onclick="confirmSubmit()" class="btn btn-primary">작성</button>
+			</div>
+    	</form>
+    	
+</div>
+
+
+
+
+
+<th:block layout:fragment="script">
+    <script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.js"></script>
+    <script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.js"></script>
+    <script src="https://code.jquery.com/jquery.min.js"></script>
+    <!-- 2. Summernote CSS & JS -->
+	<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+
+<!-- 3. Summernote 초기화 -->
+	<script>
+	  $(document).ready(function() {
+	    $('#contentEditor').summernote({
+	      height: 300,
+	      placeholder: '내용을 입력하세요',
+	      toolbar: [
+	        ['style', ['bold', 'italic', 'underline', 'clear']],
+	        ['font', ['strikethrough']],
+	        ['para', ['ul', 'ol', 'paragraph']],
+	        ['insert', ['link', 'picture']],
+	        ['view', ['fullscreen', 'codeview']]
+	      ]
+	    });
+	  });
+	  
+	  
+	    function confirmSubmit() {
+	        Swal.fire({
+	            title: '공지사항을 등록하시겠습니까?',
+	            icon: 'question',
+	            showCancelButton: true,
+	            confirmButtonText: '네, 등록할게요',
+	            cancelButtonText: '아니요'
+	        }).then((result) => {
+	            if (result.isConfirmed) {
+	                document.getElementById('noticeForm').submit();
+	            }
+	        });
+	    }
+	</script>
+	</script>
+    <script>
+        // 기존 JavaScript 코드
+    </script>
+</th:block>
+
+
+
+
+
+
+</html>

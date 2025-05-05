@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+<meta charset="UTF-8">
+	<!-- 최신 xlsx 스크립트 CDN(엑셀용) -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	
+	<!-- CSS -->
+	<link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.css" />
+	
+	<!-- JS -->
+	<script src="https://uicdn.toast.com/tui.code-snippet/latest/tui-code-snippet.js"></script>
+	<script src="https://uicdn.toast.com/tui.dom/latest/tui-dom.js"></script>
+	<script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.js"></script>
+
+
+</head>
+<body>
+<div layout:fragment="content">
+
+	<h3>공정현황</h3>
+	
+	<div class="card">
+		    <div class="card-body"> <!-- 여기에 내용작성 -->
+		    <div class="card-header">
+		        <h5 class="card-title"></h5>
+		    </div>
+			<div class="row mb-3"> <!-- 검색박스 -->
+		        <div class="col-md-3">
+		            <input type="month" class="form-control" placeholder="등록월">
+		        </div>
+		        <div class="col-md-4">
+		            <div class="input-group">
+		                <input type="text" class="form-control" placeholder="상품명을 입력해주세요.">
+		                <button class="btn btn-outline-secondary" type="button">
+		                    <i class="bi bi-search"></i>
+		                </button>
+		            </div>
+		        </div>
+		    </div><!-- /검색박스 -->
+		    <hr>
+   			
+			
+			<div class="card-header">
+		        <h5 class="card-title"><i class="fa-solid fa-bars"></i> 대기 목록</h5>
+		    </div>
+		    <div id="grid" style="height: 400px;"></div>
+		    
+		    <script th:inline="javascript">
+		    	const gridData = /*[[${orderList}]]*/ [];
+		    	gridData.forEach((list, index) => list.rowNum = index + 1); //row번호
+		    	
+			    const grid = new tui.Grid({
+			      el: document.getElementById('grid'),
+			      data: gridData,
+			      rowHeaders: ['checkbox'],
+			      scrollX: false,
+			      scrollY: true,
+			      columns: [
+			    	{ header: '지시번호', name: 'rowNum', sortable: true,align: 'center'},
+			        { header: '계획코드', name: 'woCode',sortable: true,align: 'center' },
+			        { header: '품목코드', name: 'pdtCode',sortable: true,align: 'center'},
+			        { header: '품목', name: 'pdtName' ,align: 'center'},
+			        { header: '수량', name: 'woQty' ,align: 'center'},
+			        { header: '단위', name: 'unit' ,align: 'center' ,formatter: () => 'EA'},
+			        { header: '작업담당자', name: 'empName' ,align: 'center'},
+// 			        { header: '라인', name: 'lineCode' ,align: 'center'},
+			        { header: '공정', name: 'prcCode' ,align: 'center'},
+			        { header: '공정 상태', name: 'msStatus' ,align: 'center'},
+			        { header: '작업 시작일', name: 'woStartDate',sortable: true,align: 'center' },
+			        { header: '작업 종료일', name: 'woEndDate' ,align: 'center'}
+			      ]
+			    });
+		  </script>
+		  
+		  <div class="text-end"> <!-- 공정 버튼 -->
+				<button class="btn btn-primary btn-m " id="workStartBtn" onclick=""><i class="fa-solid fa-circle-play"></i> 공정시작</button>
+				<button class="btn btn-success btn-m" id="processFinishBtn"><i class="fa-solid fa-circle-check"></i> 공정완료</button>
+				<button class="btn btn-warning btn-m" id="defectCheckBtn"><i class="fa-solid fa-spinner"></i> 품질검사</button>
+				<button class="btn btn-secondary btn-m" id="workEndBtn"><i class="fa-solid fa-file-circle-check"></i> 작업종료</button>
+			</div>
+		  
+		  
+			<div class="card-header">
+			    <h5 class="card-title"><i class="fa-solid fa-bars"></i> 자재 / 삭제 가능성</h5>
+			</div>
+			    <div id="grid2" style="height: 400px;"></div>
+				<script th:inline="javascript">
+					const gridData2 = /*[[${orderList}]]*/ []; //적어야함
+// 					gridData2.forEach((list, index) => list.rowNum = index + 1); //row번호
+					
+					const grid2 = new tui.Grid({
+					  el: document.getElementById('grid2'),
+					  data: gridData2,
+					  rowHeaders: ['checkbox' , 'rowNum'],
+					  scrollX: false,
+					  scrollY: true,
+					  columns: [
+// 						{ header: '지시번호', name: 'rowNum', sortable: true,align: 'center'},
+					    { header: '자재명', name: '' , sortable: true,align: 'center'},
+					    { header: '창고', name: '' , sortable: true,align: 'center'},
+					    { header: '구역', name: '' , sortable: true,align: 'center'},
+					    { header: '출고수량', name: '' , sortable: true,align: 'center'},
+					    { header: '단위', name: '' },
+					  ]
+					});
+				</script>
+		    </div><!-- /card-body -->
+	</div><!-- /card -->
+
+	
+	
+
+</div> <!-- /layout:fragment -->
+<th:block layout:fragment="script">
+	<script type="text/javascript">
+	
+	</script>
+</th:block>
+</body>
+</html>

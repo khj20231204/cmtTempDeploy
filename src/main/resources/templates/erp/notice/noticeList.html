@@ -1,0 +1,172 @@
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+
+	  
+	  
+<head>
+<th:block layout:fragment="css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.css">
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.css">
+
+    <style>
+        /* 기존 CSS 스타일들 여기 */
+    </style>
+</head>
+    
+<body>
+</th:block>
+
+
+
+
+<div layout:fragment="content">
+    <!-- 기존 form, 버튼, 그리드 등 다 여기 -->
+     <h3>공지사항</h3>
+     
+     	<button type="button" class="btn btn-primary" onclick="location.href='/noticeForm'"
+     	sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')">
+		  공지사항 작성
+		</button>    	
+		<br>
+		<br>
+	     	<div id="searchForm"> <!-- 사원검색박스 -->
+					
+					<div style="display: flex; align-items: center; gap: 10px;">
+		    		<input type="text" id="searchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+					<button id="dateSearchBtn" class="btn btn-primary">검색</button>
+		  			</div>
+						
+               </div>
+		
+			<div class="table-responsive">
+	        <table class="table table-striped mb-0">
+				<!-- 1. grid 들어갈 자리 -->
+				<div id="gridTop" style="margin-top:30px;"></div>
+				
+				<!-- 2. toast grid CDN -->
+				<link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.css">
+				<script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.js"></script>
+				
+				<!-- 3. 데이터 넣고 Grid 띄우기 -->
+				<script th:inline="javascript">
+				
+				    // thymeleaf에서 받아온 데이터
+				    const noticeList = /*[[${noticeList}]]*/ [];
+				
+				   // row 번호 붙이기 (순번)
+				 noticeList.forEach((notice, index) => {
+					    notice.rowNum = noticeList.length - index;
+					});
+				
+				   // grid 생성
+				   const grid = new tui.Grid({
+				       el: document.getElementById('gridTop'),   // 여기 없으면 에러남
+				       data: noticeList,
+				       scrollX: false,
+				       scrollY: false,
+				       pageOptions: {
+				    	    useClient: true,      // 클라이언트 페이징
+				    	    perPage: 10           // 페이지당 행 수
+				    	  },
+				       columns: [
+				           { header: 'NO', name: 'rowNum', sortable: true,align: 'center'},
+				           { header: '제목', name: 'title',sortable: true, align: 'center'},
+				           { header: '이름', name: 'empName',sortable: true, align: 'center'},
+				           { header: '부서명', name: 'deptName', align: 'center'},
+				           { header: '직급', name: 'positionName', align: 'center'},
+				           { header: '날짜', name: 'createdAt', align: 'center'},
+				       ]
+				   });
+				
+				grid.on('click', ev => {
+				    const rowKey = ev.rowKey;
+				    const notice = grid.getRow(rowKey);
+				
+				    if(notice){
+				        const id = notice.noticeId;
+				        const url = `/notice/detail/${id}`;
+				        const options = "width=900,height=800,top=100,left=300,scrollbars=yes,resizable=yes";
+				        window.open(url, 'noticeDetail_' + id, options);
+				    }
+				});
+				</script>
+	             </table>
+	         </div>
+	         
+	         <script type="text/javascript">
+
+				//grid 데이터 원본 저장
+				const originalData = grid.getData();
+				
+				document.getElementById('searchInput').addEventListener('input', function (e) {
+				  const keyword = e.target.value.toLowerCase();
+				
+				  // 원본 데이터를 기준으로 필터링
+				  const filtered = originalData.filter(row => {
+				    return Object.values(row).some(val => {
+				      if (val == null) return false;
+				      return String(val).toLowerCase().includes(keyword);
+				    });
+				  });
+				
+				  // 필터링된 데이터로 그리드 업데이트
+				  grid.resetData(filtered);
+				});
+				
+				
+				function applyFilter() {
+					  const keyword = document.getElementById('searchInput').value.toLowerCase();
+					  const start = document.getElementById('startDate').value;
+					  const end = document.getElementById('endDate').value;
+				
+					  let filtered = originalData;
+				
+					  if (start && end) {
+					    const startDate = new Date(start);
+					    const endDate = new Date(end);
+					    endDate.setHours(23, 59, 59, 999);
+				
+					    filtered = filtered.filter(row => {
+					      const atdDate = new Date(row.atdDate);
+					      return atdDate >= startDate && atdDate <= endDate;
+					    });
+					  }
+				
+					  if (keyword) {
+					    filtered = filtered.filter(row =>
+					      Object.values(row).some(val =>
+					        val != null && String(val).toLowerCase().includes(keyword)
+					      )
+					    );
+					  }
+				
+					  grid.resetData(filtered);
+					}
+				
+					document.getElementById('dateSearchBtn').addEventListener('click', applyFilter);
+					document.getElementById('searchInput').addEventListener('input', applyFilter);
+				
+				
+				
+				</script>
+    	
+</div>
+
+
+
+<th:block layout:fragment="script">
+    <script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.js"></script>
+    <script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.js"></script>
+    <script src="https://code.jquery.com/jquery.min.js"></script>
+    <script>
+        // 기존 JavaScript 코드
+    </script>
+</th:block>
+
+
+
+</body>
+
+</html>

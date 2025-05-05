@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공통 레이아웃</title>
+</head>
+<body>
+	
+	
+   	<!-- Gridf를 fragment로 사용 -->
+	<div th:fragment="tuiGrid(gridId, gridOptions)">
+		
+		<!--div의 id도 gridId로 설정-->
+		<div th:attr="id=${gridId}"></div>
+		
+	    <script th:inline="javascript">
+			console.log(/*[[${gridId}]]*/);
+			console.log(/*[[${gridOptions}]]*/ []);
+			
+			document.addEventListener("DOMContentLoaded", function () {
+				
+				let gridId = /*[[${gridId}]]*/
+				
+				/* 그리드를 전역변수로 설정 */
+				window[gridId] = new tui.Grid({
+			          el: document.getElementById(gridId),
+			          scrollX: true,
+			          scrollY: true,
+			          rowHeaders: ['checkbox'],
+			          columns: /*[[${gridOptions.columns}]]*/ [],
+			          data: /*[[${gridOptions.data}]]*/ []
+				});
+			});
+	    </script>
+	</div>
+	
+	<!--
+	<div th:fragment="tuiGrid(gridId, gridOptions)">
+			<div th:attr="id=${gridId}"></div>
+		    <script th:inline="javascript">
+				console.log(/*[[${gridId}]]*/);
+				console.log(/*[[${gridOptions}]]*/ []);
+				
+				document.addEventListener("DOMContentLoaded", function () {
+				      const gridTop = new tui.Grid({
+				          el: document.getElementById(/*[[${gridId}]]*/),
+				          scrollX: true,
+				          scrollY: true,
+				          rowHeaders: ['checkbox'],
+				          columns: /*[[${gridOptions.columns}]]*/ [],
+				          data: /*[[${gridOptions.data}]]*/ []
+				      });
+				  });
+		    </script>
+		</div>-->
+</body>
+</html>

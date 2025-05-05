@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.mes.inventory.MaterialReceiptMapper">
+	
+	<!--발주 정보 SELECT-->
+	<select id="puchasesList" resultType="map" parameterType="map">
+	    SELECT
+	        PO_NO,              <!-- 발주 주문번호 -->
+	        PO_CODE,            <!-- 발주 코드 -->
+	        CLT_CODE,           <!-- 공급업체 코드 -->
+	        EMP_NO,             <!-- 사원번호 -->
+	        MTL_CODE,           <!-- 원자재 코드 -->
+	        MTL_RCV_QTY,        <!-- 자재 입고 수량 -->
+	        MTL_RCV_PRICE,      <!-- 자재 입고 단가 -->
+	        MTL_RCV_DATE,       <!-- 자재 입고 일자 -->
+	        PO_DATE,            <!-- 발주일자 -->
+	        PO_QTY,             <!-- 주문수량 -->
+	        QTY_UNIT,           <!-- 수량단위 -->
+<!--	        WHS_CODE,            창고 코드 -->
+	        PO_STATUS,          <!-- 발주 진행 상태 -->
+	        PO_USE_YN
+	    FROM
+	        PURCHASES_ORDER p
+	    WHERE 
+	        NOT EXISTS (
+	            SELECT 1 
+	            FROM MATERIAL_RECEIPT m 
+	            WHERE m.PO_CODE = p.PO_CODE
+	        )
+	    ORDER BY PO_DATE DESC
+	</select>
+	
+	<!--입고 정보 INSERT-->
+	<insert id="insertMaterialReceipt" parameterType="map">
+        INSERT INTO MATERIAL_RECEIPT (
+            RECEIPT_NO, <!-- 입고 번호 -->
+            RECEIPT_CODE, <!-- 입고 코드 -->
+            PO_CODE, <!-- 발주코드 -->
+            MTL_CODE, <!-- 자재코드 -->
+            RECEIVED_QTY, <!-- 입고수량 -->
+            RECEIPT_DATE, <!-- 입고일 -->
+            RECEIPT_STATUS, <!-- 입고상태 -->
+            WAREHOUSE_CODE,  <!--창고 코드--> 
+            LOCATION_CODE,  <!--위치 코드--> 
+            RECEIVER, <!-- 입고 담당자 -->
+            CREATED_BY, <!-- 생성자 -->
+            UPDATED_BY, <!-- 수정자 -->
+            CREATED_DATE, <!-- 생성일자 -->
+            UPDATED_DATE <!-- 수정일자 -->
+        ) VALUES (
+            SEQ_MATERIAL_RECEIPT.NEXTVAL,
+            #{receiptCode},
+            #{poCode},
+            #{mtlCode},
+            #{receivedQty}, 
+            #{receiptDate, jdbcType=DATE},
+            #{receiptStatus},
+            #{warehouseCode, jdbcType=VARCHAR}, 
+            #{locationCode, jdbcType=VARCHAR},
+            #{receiver},
+            #{createdBy},
+            #{updatedBy}, 
+            #{createdDate},
+            #{updatedDate}
+        )
+	</insert>
+	
+	<!--입고 정보 SELECT-->
+	<select id="mReceiptList" resultType="map" parameterType="map">
+        SELECT
+        	MR.RECEIPT_NO, <!-- 입고 번호 -->
+            MR.RECEIPT_CODE, <!-- 입고 코드 -->
+            MR.PO_CODE, <!-- 발주코드 -->
+            MR.MTL_CODE, <!-- 자재코드 -->
+            MR.RECEIVED_QTY, <!-- 입고수량 -->
+            M.MTL_NAME, <!-- 자재명  -->
+            MR.RECEIPT_DATE, <!-- 입고일 -->
+            MR.RECEIPT_STATUS, <!-- 입고상태 -->
+            MR.WAREHOUSE_CODE, <!-- 창고 코드 -->
+            MR.LOCATION_CODE, <!-- 위치 코드 -->
+            MR.RECEIVER, <!-- 입고 담당자 -->
+            MR.CREATED_BY, <!-- 생성자 -->
+            MR.UPDATED_BY, <!-- 수정자 -->
+            MR.CREATED_DATE, <!-- 생성일자 -->
+            MR.UPDATED_DATE <!-- 수정일자 -->
+        FROM  
+        	MATERIAL_RECEIPT MR
+        LEFT JOIN
+        	MATERIALS M
+        ON
+        	MR.MTL_CODE = M.MTL_CODE
+        <where>
+            <if test="keyword != null and keyword != ''">
+                (
+                    MR.RECEIPT_CODE LIKE '%' || #{keyword} || '%' OR
+                    MR.PO_CODE LIKE '%' || #{keyword} || '%' OR
+                    MR.MTL_CODE LIKE '%' || #{keyword} || '%' OR
+                    M.MTL_NAME LIKE '%' || #{keyword} || '%' OR
+                )
+            </if>
+        </where>
+        ORDER BY MR.RECEIPT_NO DESC
+	</select>
+	
+	<!-- 입고 상세 정보 조회 -->
+    <select id="getReceiptDetail" resultType="map" parameterType="long">
+        SELECT
+            MR.RECEIPT_NO, 
+            MR.RECEIPT_CODE, 
+            MR.PO_CODE, 
+            MR.MTL_CODE,
+            M.MTL_NAME,
+            MR.RECEIVED_QTY,
+            MR.RECEIPT_DATE,
+            MR.RECEIPT_STATUS,
+            MR.WAREHOUSE_CODE,
+            MR.LOCATION_CODE,
+            MR.RECEIVER,
+            MR.CREATED_BY,
+            MR.UPDATED_BY,
+            MR.CREATED_DATE,
+            MR.UPDATED_DATE,
+            PO.PO_DATE,
+            PO.CLT_CODE
+        FROM  
+            MATERIAL_RECEIPT MR
+        LEFT JOIN
+            MATERIALS M ON MR.MTL_CODE = M.MTL_CODE
+        LEFT JOIN
+            PURCHASES_ORDER PO ON MR.PO_CODE = PO.PO_CODE
+        WHERE 
+            MR.RECEIPT_NO = #{receiptNo}
+    </select>
+    
+    <!-- 마지막 저장된 입고 번호 조회 -->
+    <select id="getLastReceiptNo" resultType="java.lang.Long">
+        SELECT MAX(RECEIPT_NO) 
+        FROM MATERIAL_RECEIPT
+    </select>
+    
+	<!-- 검수 정보 조회 -->
+    <select id="getInspectionInfo" resultType="map" parameterType="long">
+        SELECT
+            IQ.IQC_NO AS INSP_NO,                   <!-- 검수 번호 -->
+            IQ.RECEIPT_NO,                          <!-- 입고 번호 -->
+            IQ.IQC_START_TIME AS INSP_DATE,         <!-- 검수 일자 -->
+            IQ.RECEIVED_QTY AS INSP_QTY,            <!-- 검수 수량 -->
+            IQ.RECEIVED_QTY AS PASS_QTY,            <!-- 합격 수량 -->
+            IQ.RECEIVED_QTY AS FAIL_QTY,            <!-- 불합격 수량 -->
+            IQ.EMP_NAME AS INSPECTOR,               <!-- 검수자 -->
+            IQ.IQC_INSPECTION_RESULT AS INSP_RESULT <!-- 검수 결과 -->
+        FROM
+            IQC IQ
+        WHERE
+            IQ.RECEIPT_NO = #{receiptNo}
+    </select>
+    
+    <!-- LOT 정보 조회 -->
+    <select id="getLotInfo" resultType="map" parameterType="long">
+        SELECT
+            L.LOT_NO,
+            L.LOT_QTY,
+            L.LOT_DATE,
+            L.LOT_STATUS
+        FROM
+            MATERIAL_LOT L
+        WHERE
+            L.RECEIPT_NO = #{receiptNo}
+    </select>
+    
+    <!-- 위치 정보 조회 -->
+    <select id="getLocationInfo" resultType="map" parameterType="long">
+        SELECT
+            W.WAREHOUSE_CODE,
+            W.WHS_NAME AS WAREHOUSE_NAME,
+            L.LOCATION_CODE,
+            L.LOCATION_NAME,
+            L.STOCK_QTY
+        FROM
+            MATERIAL_STOCK_LOCATION L
+        JOIN
+            WAREHOUSE W ON L.WAREHOUSE_CODE = W.WAREHOUSE_CODE
+        WHERE
+            L.RECEIPT_NO = #{receiptNo}
+    </select>
+    
+    <!-- 이력 정보 조회 -->
+    <select id="getHistoryInfo" resultType="map" parameterType="long">
+        SELECT
+            H.HISTORY_NO,
+            H.RECEIPT_NO,
+            H.ACTION_TYPE,
+            H.ACTION_DESCRIPTION,
+            H.ACTION_USER,
+            H.ACTION_DATE
+        FROM
+            MATERIAL_RECEIPT_HISTORY H
+        WHERE
+            H.RECEIPT_NO = #{receiptNo}
+        ORDER BY
+            H.ACTION_DATE DESC
+    </select>
+    
+    <!-- 입고 상태 업데이트 -->
+    <update id="updateReceiptStatus" parameterType="map">
+        UPDATE 
+            MATERIAL_RECEIPT
+        SET 
+            RECEIPT_STATUS = #{receiptStatus},
+            UPDATED_BY = #{updatedBy},
+            UPDATED_DATE = SYSDATE
+        WHERE 
+            RECEIPT_NO = #{receiptNo}
+    </update>
+    
+    <!-- 입고 상태 및 입고일 업데이트 -->
+    <update id="updateReceiptStatusAndDate" parameterType="map">
+        UPDATE 
+            MATERIAL_RECEIPT
+        SET 
+            RECEIPT_STATUS = #{receiptStatus},
+            RECEIPT_DATE = TO_DATE(#{receiptDate}, 'YYYY-MM-DD'),
+            UPDATED_BY = #{updatedBy},
+            UPDATED_DATE = SYSDATE
+        WHERE 
+            RECEIPT_NO = #{receiptNo}
+    </update>
+    
+    <!-- 입고 상태 및 창고/위치 정보 업데이트 -->
+	<update id="updateReceiptStatusAndLocation" parameterType="map">
+	    UPDATE 
+	        MATERIAL_RECEIPT
+	    SET 
+	        RECEIPT_STATUS = #{receiptStatus},
+	        WAREHOUSE_CODE = #{warehouseCode},
+	        LOCATION_CODE = #{locationCode},
+	        UPDATED_BY = #{updatedBy},
+	        UPDATED_DATE = SYSDATE
+	    WHERE 
+	        RECEIPT_NO = #{receiptNo}
+	</update>
+    
+</mapper>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문서 상세</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- 기본 정보 hidden 필드 -->
+        <input type="hidden" id="docId" th:value="${document.docId}" />
+        <input type="hidden" id="isCurrentApprover" th:value="${isCurrentApprover}" />
+        <!-- 결재자 ID 추가 -->
+        <input type="hidden" id="approverId" th:value="${approverId ?: #authentication.principal.username}" />
+        
+        <!-- 버튼 영역 -->
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <button type="button" class="btn btn-secondary" onclick="history.back()">
+                    <i class="bi bi-arrow-left"></i> 뒤로가기
+                </button>
+            </div>
+			<!--임시저장 문서의 경우 수정버튼 표시-->
+			<div>
+				<button th:if="${document.isTempSaved == 'Y'}"
+						type="button" id="editBtn" class="btn btn-warning me-1">
+						<i class="bi bi-pencil"></i> 수정
+				</button>
+				<!--결재자인 경우에만 승인/반려 버튼 표시-->
+                <button th:if="${isCurrentApprover}" type="button" id="approveBtn" class="btn btn-success me-1">
+                    <i class="bi bi-check-lg"></i> 승인
+                </button>
+                <button th:if="${isCurrentApprover}" type="button" id="rejectBtn" class="btn btn-danger">
+                    <i class="bi bi-x-lg"></i> 반려
+                </button>
+            </div>
+        </div>
+        
+        <!-- 문서 정보 카드 -->
+        <div class="card">
+            <div class="card-header">
+                <h4 th:text="${document.title}">문서 제목</h4>
+            </div>
+            <div class="card-body">
+                <!-- 문서 기본 정보 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th width="30%">문서번호</th>
+                                <td th:text="${document.docNumber}">문서번호</td>
+                            </tr>
+                            <tr>
+                                <th>기안자</th>
+                                <td th:text="${document.drafterName}">기안자</td>
+                            </tr>
+                            <tr>
+                                <th>기안부서</th>
+                                <td th:text="${document.draftDeptName}">기안부서</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th width="30%">기안일자</th>
+                                <td th:text="${#temporals.format(document.draftDate, 'yyyy-MM-dd HH:mm')}">기안일자</td>
+                            </tr>
+                            <tr>
+                                <th>문서상태</th>
+                                <td>
+                                    <span th:class="${document.docStatus eq '진행중' ? 'badge bg-primary' : 
+                                                     document.docStatus eq '완료' ? 'badge bg-success' : 
+                                                     'badge bg-danger'}" 
+                                          th:text="${document.docStatus}">상태</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>문서종류</th>
+                                <td th:text="${document.formId}">문서종류</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 결재선 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5>결재선</h5>
+                        <table class="table table-bordered text-center" id="approvalLinesTable">
+                            <thead>
+                                <tr>
+                                    <th>순서</th>
+                                    <th>결재자</th>
+                                    <th>직위</th>
+                                    <th>결재타입</th>
+                                    <th>결재상태</th>
+                                    <th>결재일시</th>
+                                    <th>의견</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 각 행에 데이터 속성으로 결재자 ID와 상태 추가 -->
+                                <tr th:each="line : ${document.approvalLines}" 
+                                    th:data-approver-id="${line.approverId}"
+                                    th:data-approval-status="${line.approvalStatus}"
+                                    th:class="${line.approvalStatus eq '대기' ? 'approval-pending' : ''}">
+                                    <td th:text="${line.approvalOrder}">1</td>
+                                    <td th:text="${line.approverName}" th:data-approver-id="${line.approverId}">홍길동</td>
+                                    <td th:text="${line.approverPosition}">과장</td>
+                                    <td th:text="${line.approvalType}">결재</td>
+                                    <td>
+                                        <span th:class="${line.approvalStatus eq '대기' ? 'badge bg-warning' : 
+                                                         line.approvalStatus eq '승인' ? 'badge bg-success' : 
+                                                         'badge bg-danger'}" 
+                                              th:text="${line.approvalStatus}">대기</span>
+                                    </td>
+                                    <td th:text="${line.approvalDate != null ? #temporals.format(line.approvalDate, 'yyyy-MM-dd HH:mm') : '-'}">-</td>
+                                    <td th:text="${line.approvalComment ?: '-'}">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 문서 내용 -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5>문서 내용</h5>
+                        <div class="border p-3 rounded" th:utext="${document.content}">
+                            문서 내용이 여기에 표시됩니다.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 첨부파일 -->
+                <div class="row mt-4" th:if="${document.attachments != null and not #lists.isEmpty(document.attachments)}">
+                    <div class="col-12">
+                        <h5>첨부파일</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item" th:each="file : ${document.attachments}">
+                                <a th:href="@{'/api/eapproval/download/' + ${file.fileNo}}" th:text="${file.originalName}">파일명</a>
+                                <span class="text-muted" th:text="'(' + ${#numbers.formatInteger(file.fileSize / 1024, 1, 'COMMA')} + ' KB)'">파일크기</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 결재 의견 모달 -->
+        <div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="approvalModalLabel">결재 처리</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="approvalForm">
+                            <input type="hidden" id="decision" name="decision" value="" />
+                            <div class="mb-3">
+                                <label for="comment" class="form-label">결재 의견</label>
+                                <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+                                <div id="commentHelp" class="form-text text-danger" style="display: none;">
+                                    반려 시에는 의견 입력이 필수입니다.
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="button" id="confirmBtn" class="btn btn-primary">확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 페이지별 JavaScript -->
+    <th:block layout:fragment="script">
+        <script th:inline="javascript">
+            // Thymeleaf로부터 전달받은 데이터
+            window.documentData = {
+                docId: /*[[${document.docId}]]*/ '',
+                isCurrentApprover: /*[[${isCurrentApprover}]]*/ false,
+                approverId: /*[[${approverId ?: #authentication.principal.username}]]*/ ''  // 서버에서 전달받은 결재자 ID 추가
+            };
+        </script>
+        <script src="/js/eapproval/documentView.js"></script>
+    </th:block>
+</body>
+</html>

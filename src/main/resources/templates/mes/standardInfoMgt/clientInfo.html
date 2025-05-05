@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+<meta charset="UTF-8">
+	<!-- 최신 xlsx 스크립트 CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body>
+<div layout:fragment="content">
+
+	<h3>거래처 정보</h3>
+	
+	<div class="card">
+		    <div class="card-header">
+		        <h5 class="card-title">거래처 목록</h5>
+		    </div>
+		    <div class="card-body"> <!-- 여기에 내용작성 -->
+		    
+			<div class="row mb-3"> <!-- 검색박스 -->
+		        <div class="col-md-3">
+		            <input type="month" class="form-control" placeholder="등록월">
+		        </div>
+		        <div class="col-md-4">
+		            <div class="input-group">
+		                <input type="text" class="form-control" placeholder="거래처 이름을 입력해주세요.">
+		                <button class="btn btn-outline-secondary" type="button">
+		                    <i class="bi bi-search"></i>
+		                </button>
+		            </div>
+		        </div>
+		    </div><!-- /검색박스 -->
+		    <div class="text-end" sec:authorize="hasRole('ROLE_MANAGER') or hasRole('ROLE_ADMIN')"> <!-- 거래처등록 버튼 -->
+			    <button class="btn btn-primary btn-m" id="regeWork" data-bs-toggle="modal" data-bs-target="#workModal"><i class="fa-solid fa-person-walking-luggage"></i> 거래처 등록</button>
+			    <button class="btn btn-outline-danger  btn-m" id="deleteClient" onclick="deleteClient()"><i class="fa-solid fa-trash-can"></i> 거래처 삭제</button>
+			</div><!-- 거래처 등록 버튼 -->
+			<hr>
+			
+			 <div id="grid" style="height: 400px;"></div>
+				    <script th:inline="javascript">
+					    window.gridData = /*[[${clientList}]]*/ [];
+					    gridData.forEach((list, index) => list.rowNum = index + 1);
+					    window.grid = new tui.Grid({
+					      el: document.getElementById('grid'),
+					      data: gridData,
+					      rowHeaders: ['checkbox'],
+					      scrollX: true,
+					      scrollY: true,
+					      pageOptions: {
+					    	    useClient: true,      // 클라이언트 페이징
+					    	    perPage: 13           // 페이지당 행 수
+					    	  },
+					      columns: [
+					        { header: 'No.', name: 'rowNum', sortable: true,align: 'center'},
+					        { header: '거래처명', name: 'cltName',sortable: true,align: 'center'},
+					        { header: '연락처', name: 'cltPhone',align: 'center'},
+					        { header: '대표자명', name: 'cltOwnerName' ,align: 'center'},
+					        { header: '담당자명', name: 'cltManagerName' ,align: 'center'},
+					        { header: '이메일', name: 'cltEmail' ,align: 'center'},
+					        {
+					        	  header: '구분',
+					        	  name: 'cltType',
+					        	  align: 'center',
+					        	  sortable: true,
+					        	  formatter: function({ value }) {
+					        	    if (value === 'ORDER') return '수주';
+					        	    if (value === 'SUPPLIER') return '발주';
+					        	    return value;
+					        	  }
+					        	},
+					        { header: '주소', name: 'cltAddress' ,align: 'center'},
+// 					        { header: '상세 주소', name: 'cltAddress2' ,align: 'center'},
+// 					        { header: '우편번호', name: 'cltPostCode' ,align: 'center'},
+					        { header: '메모', name: 'cltComments' ,align: 'center'},
+					        { header: '등록일', name: 'regiDate' ,align: 'center'}
+					      ]
+					    });
+					    
+					    grid.on('click', ev => {
+				    	  const rowKey = ev.rowKey;
+				    	  const checked = grid.getCheckedRowKeys().includes(rowKey);
+				    	  if (!checked) {
+				    	    grid.check(rowKey);
+				    	  } else {
+				    	    grid.uncheck(rowKey);
+				    	  }
+				    	});
+					    
+					    
+					    
+					    function deleteClient(){
+					    	const checkedRows = grid.getCheckedRows();
+	
+					    	  if (checkedRows.length === 0) {
+					    	    alert("삭제할 항목을 선택해주세요!");
+					    	    return;
+					    	  }
+					    	  const cltNo = checkedRows[0].cltNo;
+					    	  
+					    	  $.ajax({
+					    		  url : '/deleteClient',
+					    		  type : 'POST',
+					    		  data: { cltNo: cltNo },
+					    		  success : function (response){
+					    			  Swal.fire({
+					    				  title: '삭제 성공!',
+					    				  icon: 'success',
+					    				  timer: 500,
+					    				  showConfirmButton: false
+					    				}).then(() => {
+					    				  location.reload();
+					    				});
+					    		  },
+					    		  error : function (error){
+					    			  console.log('삭제 실패',error);
+					    		  }
+					    	  });
+				    	  
+					    }
+					    
+				  </script>
+			
+			
+			
+			
+			
+		    </div><!-- /card-body -->
+	</div><!-- /card -->
+
+	<!-- 모달 -->
+	<div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	    <div class="modal-dialog modal-dialog-centered modal-lg">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="exampleModalCenterTitle">거래처 등록</h5>
+	            </div>
+	            <form action="/clientInfoForm" method="POST">
+	            <div class="modal-body">
+	                <div class="form-group">
+                        <label for="basicInput">거래처 구분</label>
+                        <select class="form-select" id="basicSelect" name="cltType">
+                            <option value="SUPPLIER">수주</option>
+                            <option value="ORDER">발주</option>
+                            <option value="ect">기타</option>
+                        </select>
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">거래처명</label>
+                        <input type="text" class="form-control" id="cltName" name="cltName" placeholder="거래처명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">대표자명</label>
+                        <input type="text" class="form-control" id="=" name="cltOwnerName" placeholder="대표자명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">담당자명</label>
+                        <input type="text" class="form-control" id="=" name="cltManagerName" placeholder="담당자명">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">전화번호</label>
+                        <input type="text" class="form-control" id="=" name="cltPhone" placeholder="전화번호">
+                    </div>
+	                <div class="form-group">
+                        <label for="basicInput">이메일</label>
+                        <input type="text" class="form-control" id="=" name="cltEmail" placeholder="이메일">
+                    </div>
+                    <div class="form-group">
+	                    <label for="basicInput">주소</label>
+						<div class="form-item">
+							<input type="text" id="empAddress1" name="cltAddress" class="form-control" placeholder="주소 입력" >
+<!-- 							<input type="text" id="empPostCode" name="cltPostCode" class="form-control" size="6"  readonly><br> -->
+<!-- 							<input type="button" value="주소검색" onclick="search_address()" class="btn btn-primary btnAddress"><br> -->
+						</div>
+						<div class="form-item">
+<!-- 		                    <label for="empAddress2"></label> -->
+<!-- 							<div class="form-item"> -->
+<!-- 								<input type="text" id="empAddress2" name="cltAddress2" class="form-control" size="25"  placeholder="상세주소"> -->
+<!-- 							</div> -->
+						</div>
+					</div>
+					<div class="form-group">
+                        <label for="basicInput">메모</label>
+                        <input type="text" class="form-control" id="" name="cltComments" placeholder="메모 입력">
+                    </div>
+
+	            </div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">닫기</span>
+	                </button>
+	                <button type="submit" class="btn btn-primary ms-1" >
+	                    <span class="d-none d-sm-block">등록</span>
+	                </button>
+	            </div>
+	            
+	            </form>
+	        </div>
+	    </div>
+	</div><!-- /모달 -->
+	
+
+</div> <!-- /layout:fragment -->
+</body>
+</html>

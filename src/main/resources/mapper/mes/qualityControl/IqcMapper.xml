@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.mes.qualityControl.IqcMapper">
+
+	<!-- 모든 정보 리스트로 출력 -->
+	<select id="getAllIqc" resultType="com.example.cmtProject.dto.mes.qualityControl.IqcDTO">
+	SELECT 
+        I.IQC_NO,
+        I.IQC_CODE,
+        E.EMP_NAME,
+        E.EMP_ID,
+        I.QCM_NAME,
+        M.MTL_NAME,
+        I.IQC_START_TIME,
+        I.IQC_END_TIME,
+        I.RECEIVED_QTY,
+        I.UNIT_QTY,
+        I.IQC_MEASURED_WEIGHT_VALUE,
+        I.IQC_MEASURED_LENGTH_VALUE,
+        C_UNIT_LENGTH.CMN_DETAIL_NAME AS QCM_UNIT_LENGTH,
+		C_UNIT_WEIGHT.CMN_DETAIL_NAME AS QCM_UNIT_WEIGHT,
+		I.IQC_INSPECTION_STATUS,
+		I.IQC_INSPECTION_RESULT,
+        I.WHS_NAME,
+        I.LOT_NO,
+        I.IQC_REMARKS,
+        I.RECEIPT_CODE
+    FROM IQC I
+    LEFT JOIN COMMONCODE_DETAIL C_UNIT_LENGTH ON C_UNIT_LENGTH.CMN_DETAIL_NAME = I.QCM_UNIT_LENGTH
+	LEFT JOIN COMMONCODE_DETAIL C_UNIT_WEIGHT ON C_UNIT_WEIGHT.CMN_DETAIL_NAME = I.QCM_UNIT_WEIGHT	
+	LEFT JOIN EMPLOYEES E ON E.EMP_ID = I.EMP_ID
+	JOIN MATERIALS M ON M.MTL_CODE = I.MTL_CODE
+	WHERE I.IQC_VISIABLE = 'Y'
+    ORDER BY IQC_NO DESC
+	</select>
+	
+	<!-- 비고란 업데이트 -->
+	<update id="iqcRemarksAndQcmNameUpdate" parameterType="com.example.cmtProject.dto.mes.qualityControl.IqcDTO">
+		UPDATE IQC
+		SET IQC_REMARKS = #{iqcRemarks},
+			QCM_NAME = #{qcmName, jdbcType=VARCHAR},
+			QCM_UNIT_WEIGHT = #{qcmUnitWeight},
+			QCM_UNIT_LENGTH = #{qcmUnitLength}
+		WHERE IQC_NO = #{iqcNo}
+	</update>
+	
+	<!-- 삭제 대신 안보이게 업데이트 -->
+	<update id="isVisiableToFalse" parameterType="list">
+	  UPDATE IQC
+	  SET IQC_VISIABLE = 'N'
+	  WHERE IQC_NO IN (
+	    <foreach item="id" collection="list" separator=",">
+	      #{id}
+	    </foreach>
+	  )
+	</update>
+	
+	<!-- 엑셀 데이터 업데이트 -->
+	<update id="saveExcelData" parameterType="com.example.cmtProject.dto.mes.qualityControl.IqcDTO">
+		UPDATE IQC
+	    SET
+	    	IQC_INSPECTION_STATUS       = #{iqcInspectionStatus},
+	        IQC_INSPECTION_RESULT       = #{iqcInspectionResult},
+	        IQC_CODE                    = #{iqcCode},
+	        QCM_NAME                    = #{qcmName},
+	        EMP_NAME                    = #{empName},
+	        EMP_ID                      = #{empId},
+	        MTL_NAME                    = #{mtlName},
+	        RECEIVED_QTY                = #{receivedQty},
+	        UNIT_QTY                    = #{unitQty},
+	        IQC_MEASURED_WEIGHT_VALUE   = #{iqcMeasuredWeightValue},
+	        QCM_UNIT_WEIGHT             = #{qcmUnitWeight},
+	        IQC_MEASURED_LENGTH_VALUE   = #{iqcMeasuredLengthValue},
+	        QCM_UNIT_LENGTH             = #{qcmUnitLength},
+	        IQC_START_TIME              = #{iqcStartTime},
+	        IQC_END_TIME                = #{iqcEndTime},
+	        WHS_NAME                    = #{whsName},
+	        IQC_REMARKS                 = #{iqcRemarks}
+	    WHERE IQC_NO = #{iqcNo}
+	</update>
+	
+	
+	
+	<!-- 물건 입고시 입고 검사 검사전과 필요한 데이터 가져오기 -->
+	<select id="getMaterialReceipts" resultType="map" parameterType="map">
+		SELECT 
+			RECEIPT_CODE,
+			RECEIPT_NO,
+			MTL_CODE,
+			RECEIVED_QTY,
+			WAREHOUSE_CODE
+		FROM
+			MATERIAL_RECEIPT
+		WHERE RECEIPT_CODE = #{receiptCode}
+	</select>
+	
+	<!-- IQC CODE 생성 및 최대값 가져오는 코드 -->
+	<select id="getMaxIqcCodeSeq" resultType="int" parameterType="string">
+	  SELECT 
+	    COALESCE(MAX(TO_NUMBER(SUBSTR(IQC_CODE, 14))), 0)
+	  FROM 
+	    IQC
+	  WHERE 
+	    SUBSTR(IQC_CODE, 5, 8) = #{datePart}
+	</select>
+	
+	<!-- 입고가 되고 검사 시작 눌렀을시 저장될 데이터들 -->
+	<insert id="insertIqcInspectionList" parameterType="map">
+	INSERT INTO IQC (
+	  IQC_INSPECTION_STATUS,
+	  IQC_INSPECTION_RESULT,
+	  IQC_CODE, 
+	  RECEIPT_CODE,
+	  RECEIPT_NO,
+	  MTL_CODE, 
+	  RECEIVED_QTY, 
+	  UNIT_QTY,
+	  IQC_VISIABLE
+	)
+	SELECT
+	  '검사시작',
+	  '예정',
+	  #{iqcCode},
+	  #{receiptCode}, 
+	  #{receiptNo}, 
+	  #{mtlCode}, 
+	  #{receivedQty},
+	  '개',
+	  'Y'
+	FROM DUAL
+	WHERE NOT EXISTS (
+	  SELECT 1 FROM IQC WHERE RECEIPT_CODE = #{receiptCode}
+	)
+	</insert>
+	
+	<!-- 검사시작에서 검사중으로 업데이트 -->
+	<update id="updateIqcInspectionStatusProcessing" parameterType="map">
+		UPDATE IQC
+		SET 
+			IQC_INSPECTION_STATUS = '검사중',
+			EMP_NAME = #{emp.empName},
+			EMP_ID = #{emp.empId},
+			IQC_START_TIME = #{iqc.iqcStartTime}
+		WHERE IQC_CODE = #{iqc.iqcCode}
+	</update>
+	
+	
+	<!-- 검사중에서 검사완료로 업데이트 -->
+	<update id="updateIqcInspectionStatusComplete" parameterType="com.example.cmtProject.dto.mes.qualityControl.IqcDTO">
+		UPDATE IQC
+		SET 
+			IQC_INSPECTION_STATUS = '검사완료',
+			IQC_END_TIME = #{iqcEndTime}
+		WHERE IQC_CODE = #{iqcCode}
+	</update>
+	
+	<select id="selectQcmInfoByIqcCode" parameterType="string" resultType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+	    SELECT 
+	        Q.QCM_MIN_VALUE,
+	        Q.QCM_MAX_VALUE,
+	        Q.QCM_UNIT_WEIGHT,
+      		Q.QCM_UNIT_LENGTH
+	    FROM IQC I
+	    JOIN QCM Q ON I.QCM_NAME = Q.QCM_NAME
+	    WHERE I.IQC_CODE = #{iqcCode}
+	</select>
+	
+	<update id="updateMeasuredValues" parameterType="map">
+	    UPDATE IQC
+	    SET
+	    	IQC_MEASURED_WEIGHT_VALUE = #{weightValue},
+	        IQC_MEASURED_LENGTH_VALUE = #{lengthValue},
+	        IQC_INSPECTION_RESULT = #{result}
+	    WHERE IQC_CODE = #{iqcCode}
+	</update>
+	
+	<!-- 도넛 차트 값 넘겨주는 쿼리 -->
+	<select id="getSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+	SELECT 
+        SUM(CASE WHEN IQC_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+        SUM(CASE WHEN IQC_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+        SUM(CASE WHEN IQC_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+    FROM IQC
+        WHERE IQC_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND IQC_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        ORDER BY TO_CHAR(IQC_START_TIME, 'YYYYMMDD')
+	</select>
+	
+	<!-- 최근 7일 PASS, IN_PROGRESS, FAIL 개수 조회 -->
+    <select id="getLast7DaysSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+        SELECT
+        	TO_CHAR(IQC_START_TIME, 'YYYYMMDD') AS iqcDate,
+            SUM(CASE WHEN IQC_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+            SUM(CASE WHEN IQC_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+            SUM(CASE WHEN IQC_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+        FROM IQC
+        WHERE IQC_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND IQC_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        GROUP BY TO_CHAR(IQC_START_TIME, 'YYYYMMDD')
+        ORDER BY TO_CHAR(IQC_START_TIME, 'YYYYMMDD')
+    </select>
+
+
+</mapper>

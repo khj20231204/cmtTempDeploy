@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}"> 
+	<head>
+		<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    
+	    <!-- xlsx.js (필수 의존성) -->
+		<!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>-->
+		<!-- 최신 xlsx 스크립트 CDN -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	   
+	    <title>품질 정보</title>
+
+<style>
+  .tui-datepicker {
+    z-index: 99999 !important;
+    position: absolute !important;
+  }
+</style>
+
+<style>
+	.btn-upload { background-color: #007bff; color: white; }
+	.btn-download { background-color: #28a745; color: white; } 
+</style>	
+
+
+</head>
+
+
+<body>
+
+    <div layout:fragment="content">
+		
+		<br>
+<!--		<th:block th:each="soModel : ${soModel}">-->
+<!--			<div th:text="${soModel}"></div>-->
+<!--		</th:block>-->
+<!-- 그리드 top 시작 -->
+	<h3>품질 정보</h3>
+	
+	
+
+	
+	
+	
+	
+	
+<!-- 전체 한 줄 정렬 -->
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%">
+
+  <!-- 왼쪽: 검색 + 파일 + 엑셀 -->
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <input type="text" id="searchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+    <button id="dateSearchBtn" class="btn btn-primary">검색</button>
+
+    <!-- 파일 업로드 -->
+    <input type="file" id="fileUpload" hidden>
+    <input type="file" class="form-control" id="fileInput" accept=".xlsx" style="width: 300px;">
+
+    <button class="btn btn-upload" id="ExcelUpBtn">엑셀 업로드</button>
+    <button class="btn btn-download" id="ExcelDownBtn">엑셀 다운로드</button>
+  </div>
+
+  <!-- 오른쪽: 등록/삭제 -->
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <button type="button" class="btn btn-outline-primary" onclick="addEditableRow()">품질 정보 등록</button>
+    <button type="button" class="btn btn-outline-danger" onclick="deleteQcm()" sec:authorize="hasAnyRole('ADMIN', 'MANAGER')">삭제</button>
+  </div>
+
+</div>
+
+<br>
+	
+	<div id="gridTop"></div>
+	
+	
+	<!-- 상세 정보 표시용 -->
+	<div id="qcmDetailWrapper" style="margin-top: 20px; border: 1px solid #ddd; padding: 15px;">
+	  <h3>상세 정보</h3>
+	  <div id="qcmDetailContent">검사 항목을 선택하면 상세 정보가 여기에 표시됩니다.</div>
+	</div>
+	
+	
+	
+	
+	
+	
+	
+
+
+	    <script th:inline="javascript">
+	    
+	    const userRole = /*[[${userRole}]]*/ 'ROLE_USER'; // 기본값은 일반유저
+	    
+	    let isAdmin = userRole === 'ROLE_ADMIN' || userRole === 'ROLE_MANAGER';
+	    
+	    
+	    let materialList = /*[[${materialsList}]]*/ [];
+		let productList = /*[[${productsList}]]*/ [];
+		let unitLengthList = /*[[${unitLengthList}]]*/ [];
+		let unitWeightList = /*[[${unitWeightList}]]*/ [];
+		
+		
+		let materialSelected = [
+		    { text: '', label: '', value: '' },  // ✅ null 선택지
+		    ...materialList.map(item => ({
+		        text: item.mtlName,
+		        label: item.mtlName,
+		        value: item.mtlName
+		    }))
+		];
+		let productSelected = [
+		    { text: '', label: '', value: '' },
+		    ...productList.map(item => ({
+		        text: item.pdtName,
+		        label: item.pdtName,
+		        value: item.pdtName
+		    }))
+		];
+
+		let unitLengthSelected = [
+		    { text: '', label: '', value: '' },
+		    ...unitLengthList.map(item => ({
+		        text: item.cmnDetailName,
+		        label: item.cmnDetailName,
+		        value: item.cmnDetailName
+		    }))
+		];
+
+		let unitWeightSelected = [
+		    { text: '', label: '', value: '' },
+		    ...unitWeightList.map(item => ({
+		        text: item.cmnDetailName,
+		        label: item.cmnDetailName,
+		        value: item.cmnDetailName
+		    }))
+		];
+	    
+	    const grid = new tui.Grid({
+            el: document.getElementById('gridTop'),
+            data: /*[[${qcmList}]]*/ [],
+            rowHeaders: ['checkbox'],
+            pageOptions: {
+    	        useClient: true,  // 서버 사이드 페이징 활성화
+    	        perPage: 20
+    	    },
+            columns: [
+            	{ 
+                  header: 'NO', 
+            	  name: 'qcmNo', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  align: "center",
+            	  hidden: true
+            	},
+            	{ 
+                  header: '검사 코드', 
+            	  name: 'qcmCode', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 150,
+            	  align: "center" 
+            	},
+            	{ 
+                  header: '검사명', 
+              	  name: 'qcmName', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  align: "center",
+              	  width: 300,
+           		  ...(isAdmin && {
+  	           		editor: {
+  	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+  	           	    }
+  	           	  }),
+  	           	  formatter: ({ value }) => value // 그대로 출력
+              	},
+            	{ 
+               	  header: '원자재', 
+               	  name: 'mtlName', 
+               	  sortable: true, 
+               	  filter: 'text',
+               	  align: "center",
+               	  width: 200,
+               	  ...(isAdmin && {
+               		editor: {
+    					type: 'select',
+    					options: {
+    						listItems: materialSelected 
+    					}
+    				}
+               	  }),
+    				formatter: ({ value }) => {
+    			    	const matValue = materialSelected.find(item => item.value === value);
+    			    	return matValue ? matValue.label : value; 
+    			    }
+            	},
+            	{ 
+                  header: '원자재CODE', 
+              	  name: 'mtlCode', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  align: "center",
+              	  hidden: true
+              	},
+            	{ 
+            	  header: '반제품 및 완제품', 
+            	  name: 'pdtName', 
+            	  sortable: true, 
+            	  filter: 'text',
+           		  align: "center",
+           		  width: 200,
+           		  ...(isAdmin && {
+					editor: {
+						type: 'select',
+						options: {
+							listItems: productSelected 
+						}
+					}
+           		  }),
+					formatter: ({ value }) => {
+				    	const pdtValue = productSelected.find(item => item.value === value);
+				    	return pdtValue ? pdtValue.label : value; 
+				    }
+           		},
+           		{ 
+                  header: '완재품CODE', 
+              	  name: 'pdtCode', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  align: "center",
+              	  hidden: true
+              	},
+            	{ 
+            	  header: '목표값', 
+            	  name: 'qcmTargetValue', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 100,
+           		  align: "center",
+           		  ...(isAdmin && {
+	           		editor: {
+	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+	           	    }
+	           	  }),
+	           	  formatter: ({ value }) => value // 그대로 출력
+	           	},
+            	{ 
+           	      header: '상한값', 
+           		  name: 'qcmMaxValue', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+           		  ...(isAdmin && {
+  	           		editor: {
+  	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+  	           	    }
+  	           	  }),
+  	           	  formatter: ({ value }) => value // 그대로 출력
+  	           	},
+            	{ 
+           	      header: '하한값', 
+           		  name: 'qcmMinValue', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+           		  ...(isAdmin && {
+  	           		editor: {
+  	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+  	           	    }
+  	           	  }),
+  	           	  formatter: ({ value }) => value // 그대로 출력
+  	           	},
+            	{ 
+           	      header: '단위(무게)', 
+           		  name: 'qcmUnitWeight', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+           		  ...(isAdmin && {
+  					editor: {
+  						type: 'select',
+  						options: {
+  							listItems: unitWeightSelected 
+  						}
+  					}
+             		  }),
+  					formatter: ({ value }) => {
+  				    	const unwValue = unitWeightSelected.find(item => item.value === value);
+  				    	return unwValue ? unwValue.label : value; 
+  				    }
+              	},
+            	{ 
+           	      header: '단위(길이)', 
+           		  name: 'qcmUnitLength', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  width: 100,
+           		  align: "center",
+           		  ...(isAdmin && {
+   					editor: {
+   						type: 'select',
+   						options: {
+   							listItems: unitLengthSelected 
+   						}
+   					}
+              		  }),
+   					formatter: ({ value }) => {
+   				    	const unlValue = unitLengthSelected.find(item => item.value === value);
+   				    	return unlValue ? unlValue.label : value; 
+   				    }
+              	},
+            	{ 
+           	      header: '검사방법', 
+           		  name: 'qcmMethod', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  align: "center",
+           		  width: 300,
+           		  ...(isAdmin && {
+  	           		editor: {
+  	           	      type: 'text'  // ✅ 여기! 수기 입력 가능
+  	           	    }
+  	           	  }),
+  	           	  formatter: ({ value }) => value // 그대로 출력
+            	}
+            ],
+            autoEdit: true,
+    		editingEvent: 'dblclick'     
+          });
+	    
+	    
+	    
+	    // 아무행이나 클릭했을시 상세정보 출력
+	    grid.on('click', ev => {
+	    	  const rowKey = ev.rowKey;
+	    	  const rowData = grid.getRow(rowKey);
+	    	  if (!rowData) return;
+
+	    	  const detailHtml = `
+	    	    <div style="border: 1px solid #ccc; border-radius: 8px; padding: 16px; background-color: #fdfdfd;">
+	    	      <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+
+	    	        ${makeDetailItem('검사 코드', rowData.qcmCode)}
+	    	        ${makeDetailItem('검사명', rowData.qcmName)}
+	    	        ${makeDetailItem('원자재', rowData.mtlName)}
+	    	        ${makeDetailItem('반제품/완제품', rowData.pdtName)}
+	    	        ${makeDetailItem('목표값', rowData.qcmTargetValue)}
+	    	        ${makeDetailItem('상한값', rowData.qcmMaxValue)}
+	    	        ${makeDetailItem('하한값', rowData.qcmMinValue)}
+	    	        ${makeDetailItem('단위(무게)', rowData.qcmUnitWeight)}
+	    	        ${makeDetailItem('단위(길이)', rowData.qcmUnitLength)}
+	    	        ${makeDetailItem('검사방법', rowData.qcmMethod)}
+
+	    	      </div>
+	    	    </div>
+	    	  `;
+
+	    	  document.getElementById('qcmDetailContent').innerHTML = detailHtml;
+	    	});
+	    function makeDetailItem(label, value) {
+	    	  return `
+	    	    <div style="flex: 1 1 45%; display: flex;">
+	    	      <div style="font-weight: 600; width: 120px;">${label}</div>
+	    	      <div style="flex: 1;">${value ?? '-'}</div>
+	    	    </div>
+	    	  `;
+	    	}
+	    
+	    
+	    
+
+			
+		//수정
+		grid.on('afterChange', (ev) => {
+			
+			let evValue = ev.changes[0];
+		    let rk = evValue.rowKey;
+		    let rowData = grid.getRow(rk);
+			
+		    let sendData = {
+	            qcmNo: rowData.qcmNo,
+	            columnName: evValue.columnName,
+	            value: evValue.value,
+	            qcmCode: rowData.qcmCode,
+	            qcmName: rowData.qcmName,
+	            mtlName: rowData.mtlName,
+	            mtlCode: rowData.mtlCode,
+	            pdtName: rowData.pdtName,
+	            pdtCode: rowData.pdtCode,
+	            qcmTargetValue: rowData.qcmTargetValue,
+	            qcmMaxValue: rowData.qcmMaxValue,
+	            qcmMinValue: rowData.qcmMinValue,
+	            qcmUnitWeight: rowData.qcmUnitWeight,
+	            qcmUnitLength: rowData.qcmUnitLength,
+	            qcmMethod: rowData.qcmMethod
+	        };
+
+			$.ajax({
+				url: "/qcm/edit",
+				type: "POST",
+				data: sendData,
+				success: function(result) {
+					console.log(result);
+				},
+				error: function(errorResult) {
+					grid.restore(); // 이전 상태로 롤백
+				}
+			});
+	    });
+	    
+	    
+	    
+	    
+	    // 행 아무곳이나 클릭하면 체크박스 활성화
+	    grid.on('click', ev => {
+	    	  const rowKey = ev.rowKey;
+	    	  const isChecked = grid.getCheckedRowKeys().includes(rowKey);
+	    	  if (!isChecked) {
+	    	    grid.check(rowKey);
+	    	  } else {
+	    	    grid.uncheck(rowKey);
+	    	  }
+	    	});
+	    
+        /* 이벤트 리스너 추가 */
+        grid.on('check', ev => {
+            console.log('체크됨!', ev);
+        });
+
+        grid.on('uncheck', ev => {
+            console.log('체크 해제됨!', ev);
+        });
+
+        grid.on('focusChange', ev => {
+            console.log('포커스 변경됨!', ev);
+        });
+        
+        
+        
+        
+        
+        
+        async function deleteQcm() {
+  		  const checkedRows = grid.getCheckedRows();
+  		  const ids = checkedRows.map(row => row.qcmNo);
+
+  		  if (ids.length === 0) {
+  		    await Swal.fire({
+  		      icon: "warning",
+  		      title: "삭제할 데이터를 선택해주세요."
+  		    });
+  		    return;
+  		  }
+
+  		  const result = await Swal.fire({
+  		    title: "정말 삭제하시겠습니까?",
+  		    text: `총 ${ids.length}건의 데이터를 삭제합니다.`,
+  		    icon: "warning",
+  		    showDenyButton: true,
+  		    confirmButtonText: "삭제",
+  		    denyButtonText: "취소",
+  		  });
+
+  		  if (result.isDenied) {
+  		    await Swal.fire({
+  		      icon: "error",
+  		      title: "삭제가 취소되었습니다.",
+  		    });
+  		    return;
+  		  }
+  		  
+  		  
+  		  
+  		  
+
+  		  // 삭제 API 요청
+  		  try {
+  		    const response = await fetch('/qcm/delete', {
+  		      method: 'POST',
+  		      headers: {
+  		        'Content-Type': 'application/json'
+  		      },
+  		      body: JSON.stringify({ ids: ids }) // 필요 시 선택한 ID 전달
+  		    });
+
+  		    if (!response.ok) {
+  		      await Swal.fire({
+  		        icon: "error",
+  		        title: "삭제 처리 중 서버 오류가 발생했습니다",
+  		      });
+  		      throw new Error("삭제 처리 중 서버 오류");
+  		    }
+
+  		    await Swal.fire({
+  		      title: "삭제가 완료되었습니다",
+  		      icon: "success",
+  		    });
+  		    
+  		      location.reload();
+
+  		  } catch (error) {
+  		    console.error('Error:', error);
+  		    await Swal.fire({
+  		      icon: "error",
+  		      title: "삭제 처리 중 예외가 발생했습니다",
+  		    });
+  		  }
+  		}
+        
+        
+        
+        
+        
+      //그리드 -> 엑셀 파일로 다운로드
+    	document.getElementById('ExcelDownBtn').addEventListener('click', function () {
+    	    
+    		//현재 그리드 데이터 가져오기
+    		const gridData = grid.getData();
+    		
+    		//현재 그리드의 컬럼 값 가져오기
+    	    const columns = grid.getColumns();
+
+    		//컬럼을 header와 name으로 분리
+    	    const header = columns.map(col => col.header);
+    	    const keys = columns.map(col => col.name);
+
+    		//header만큼 배열 생성
+    	    const exportData = [header];
+
+    		//row값을 데이터에 저장
+    	    gridData.forEach(row => {
+    	        const rowData = keys.map(key => row[key]);
+    	        exportData.push(rowData);
+    	    });
+
+    		//CDN 이용
+    	    const worksheet = XLSX.utils.aoa_to_sheet(exportData);
+    	    const workbook = XLSX.utils.book_new();
+
+    	    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    	    XLSX.writeFile(workbook, 'QCM-grid-data.xlsx');
+    	});
+    	
+    	let file;
+    	let reader;
+    	
+    	//파일이 선택시 실행
+    	document.getElementById('fileInput').addEventListener('change', function (e) {	
+    		
+    	    file = e.target.files[0];
+    	    reader = new FileReader();
+    		
+    		if (!file) {
+    			Swal.fire({
+    	            icon: 'warning',
+    	            title: '파일 없음',
+    	            text: '파일을 선택해 주세요.',
+    	            confirmButtonText: '확인'
+    	        });
+    	        return;
+    		}
+    	});
+
+    	//버튼 클릭 시 선택된 엑셀 파일을 그리드에 출력
+    	document.getElementById('ExcelUpBtn').addEventListener('click', function (e) {
+    		
+    		if (!file) {
+    			document.getElementById('fileInput').click();
+    	        return;
+    	    }
+    		
+    		reader.onload = function (event) {
+    			const data = new Uint8Array(event.target.result);
+    		    const workbook = XLSX.read(data, { type: 'array' });
+
+    			const firstSheetName = workbook.SheetNames[0];
+    		    const worksheet = workbook.Sheets[firstSheetName];
+
+    			console.log(worksheet);
+    			
+    			worksheet["A1"] = { t: "s", v: "qcmNo", r:"<t>qcmNo</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmNo', w: 'qcmNo'};
+    			worksheet["B1"] = { t: "s", v: "qcmCode", r:"<t>qcmCode</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmCode', w: 'qcmCode'};
+    			worksheet["C1"] = { t: "s", v: "qcmName", r:"<t>qcmName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmName', w: 'qcmName'};
+    			worksheet["D1"] = { t: "s", v: "mtlName", r:"<t>mtlName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'mtlName', w: 'mtlName'};
+    			worksheet["E1"] = { t: "s", v: "mtlCode", r:"<t>mtlCode</t><phoneticPr fontId='1' type='noConversion'/>", h: 'mtlCode', w: 'mtlCode'};  // ✅ 추가
+    			worksheet["F1"] = { t: "s", v: "pdtName", r:"<t>pdtName</t><phoneticPr fontId='1' type='noConversion'/>", h: 'pdtName', w: 'pdtName'};
+    			worksheet["G1"] = { t: "s", v: "pdtCode", r:"<t>pdtCode</t><phoneticPr fontId='1' type='noConversion'/>", h: 'pdtCode', w: 'pdtCode'};  // ✅ 추가
+    			worksheet["H1"] = { t: "s", v: "qcmTargetValue", r:"<t>qcmTargetValue</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmTargetValue', w: 'qcmTargetValue'};
+    			worksheet["I1"] = { t: "s", v: "qcmMaxValue", r:"<t>qcmMaxValue</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmMaxValue', w: 'qcmMaxValue'};
+    			worksheet["J1"] = { t: "s", v: "qcmMinValue", r:"<t>qcmMinValue</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmMinValue', w: 'qcmMinValue'};
+    			worksheet["K1"] = { t: "s", v: "qcmUnitWeight", r:"<t>qcmUnitWeight</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmUnitWeight', w: 'qcmUnitWeight'};
+    			worksheet["L1"] = { t: "s", v: "qcmUnitLength", r:"<t>qcmUnitLength</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmUnitLength', w: 'qcmUnitLength'};
+    			worksheet["M1"] = { t: "s", v: "qcmMethod", r:"<t>qcmMethod</t><phoneticPr fontId='1' type='noConversion'/>", h: 'qcmMethod', w: 'qcmMethod'};
+    			
+    			const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+    			// TUI Grid에 반영
+    			grid.resetData(jsonData);
+    	   
+    	   	
+    			// 바로 서버에 저장 요청
+    			fetch('/qcm/saveExcelData', {
+    			    method: 'POST',
+    			    headers: {
+    			        'Content-Type': 'application/json'
+    			    },
+    			    body: JSON.stringify(jsonData)
+    			})
+    			.then(res => {
+    			    if (!res.ok) throw new Error("저장 실패");
+    			    return res.text();
+    			})
+    			.then(data => {
+    			    Swal.fire({
+    			        icon: 'success',
+    			        title: '업로드 완료',
+    			        text: '엑셀 업로드 및 저장이 완료되었습니다.',
+    			        confirmButtonText: '확인'
+    			    });
+    			})
+    			.catch(err => {
+    			    console.error(err);
+    			    Swal.fire({
+    			        icon: 'error',
+    			        title: '저장 오류',
+    			        text: '엑셀 저장 중 오류가 발생했습니다.',
+    			        confirmButtonText: '닫기'
+    			    });
+    			});
+    			
+    			};
+
+    		reader.readAsArrayBuffer(file);
+    		
+    	});	
+    	
+    	
+    	
+    	
+    	function addEditableRow() {
+    	    const data = grid.getData();
+
+    	    // qcmNo에서 숫자만 추출해서 최대값 구하기
+    	    const maxNo = data.reduce((max, row) => {
+			    const num = parseInt(String(row.qcmNo || '').replace(/\D/g, ''), 10);
+			    return isNaN(num) ? max : Math.max(max, num);
+			}, 0);
+
+    	    const newNo = maxNo + 1;
+    	    const newQcmNo = 'QCM' + newNo.toString().padStart(3, '0'); // QCM001, QCM002, ...
+
+    	    grid.prependRow({
+    	    	qcmNo: newNo,
+    	        qcmCode: newQcmNo,
+    	        qcmName: '',
+    	        mltName: '',
+    	        mltCode: '',
+    	        pdtName: '',
+    	        pdtCode: '',
+    	        qcmTargetValue: '0',
+    	        qcmMaxValue: '0',
+    	        qcmMinValue: '0',
+    	        qcmUnitLength: '',
+    	        qcmUnitWeight: '',
+    	        qcmMethod: ''
+    	    });
+    	
+    	// 새로 추가한 행 index
+	    const lastIndex = grid.getRowCount() - 1;
+    	
+    	// 포커스 및 편집 시작
+	    grid.focusAt(lastIndex, 'qcmName');
+	    grid.startEditing(lastIndex, 'qcmName');
+
+    	};
+        
+        
+        
+        
+	  	// grid 데이터 원본 저장
+	  	const originalData = grid.getData();
+	
+	  	document.getElementById('searchInput').addEventListener('input', function (e) {
+	  	  const keyword = e.target.value.toLowerCase();
+	
+	  	  // 원본 데이터를 기준으로 필터링
+	  	  const filtered = originalData.filter(row => {
+	  	    return Object.values(row).some(val => {
+	  	      if (val == null) return false;
+	  	      return String(val).toLowerCase().includes(keyword);
+	  	    });
+	  	  });
+	
+	  	  // 필터링된 데이터로 그리드 업데이트
+	  	  grid.resetData(filtered);
+	  	});
+	  	
+	  	
+	  	function applyFilter() {
+  		  const keyword = document.getElementById('searchInput').value.toLowerCase();
+  		  const start = document.getElementById('startDate').value;
+  		  const end = document.getElementById('endDate').value;
+
+  		  let filtered = originalData;
+
+  		  if (start && end) {
+  		    const startDate = new Date(start);
+  		    const endDate = new Date(end);
+  		    endDate.setHours(23, 59, 59, 999);
+
+  		    filtered = filtered.filter(row => {
+  		      const attendDate = new Date(row.attendDate);
+  		      return attendDate >= startDate && attendDate <= endDate;
+  		    });
+  		  }
+
+  		  if (keyword) {
+  		    filtered = filtered.filter(row =>
+  		      Object.values(row).some(val =>
+  		        val != null && String(val).toLowerCase().includes(keyword)
+  		      )
+  		    );
+  		  }
+
+  		  grid.resetData(filtered);
+  		}
+
+  		document.getElementById('dateSearchBtn').addEventListener('click', applyFilter);
+  		document.getElementById('searchInput').addEventListener('input', applyFilter);
+  	
+	</script> 
+	
+	
+	
+	
+	</div>
+
+
+
+</body>
+</html>

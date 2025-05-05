@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.example.cmtProject.mapper.common.CommonCodeMapper">
+    <!-- 기존 맵퍼 (Map 반환) -->
+    <select id="commonList" resultType="map" parameterType="map">
+        SELECT 
+            CMN_CODE, 
+            CMN_NAME, 
+            CMN_CONTENT, 
+            CMN_CODE_IS_ACTIVE
+        FROM COMMONCODE
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CMN_CODE LIKE '%' || #{keyword} || '%'
+                    OR CMN_NAME LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+        ORDER BY CMN_CODE
+    </select>
+  
+    <!-- 기존 맵퍼 (Map 반환) -->
+    <select id="commonDetailList" resultType="map" parameterType="map">
+        SELECT 
+            CMN_DETAIL_CODE, 
+            CMN_CODE, 
+            CMN_DETAIL_NAME, 
+            CMN_DETAIL_SORT_ORDER,
+            CMN_DETAIL_CONTENT,
+            CMN_DETAIL_CODE_IS_ACTIVE
+        FROM COMMONCODE_DETAIL
+        <where>
+            <if test="cmnCode != null and cmnCode != ''">
+                CMN_CODE = #{cmnCode}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CMN_DETAIL_CODE LIKE '%' || #{keyword} || '%'
+                    OR CMN_DETAIL_NAME LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+        ORDER BY CMN_DETAIL_SORT_ORDER, CMN_DETAIL_CODE
+    </select>
+    
+    <!-- 새로운 맵퍼 (DTO 기반) -->
+    
+    <!-- 공통코드 목록 조회 -->
+    <select id="selectCommonCodes" resultType="com.example.cmtProject.dto.comm.CommonCodeDTO">
+        SELECT 
+            CMN_CODE as cmnCode,
+            CMN_NAME as cmnName,
+            CMN_CONTENT as cmnContent,
+            CMN_CODE_IS_ACTIVE as cmnCodeIsActive,
+            'select' as rowType
+        FROM 
+            COMMONCODE
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CMN_CODE LIKE '%' || #{keyword} || '%'
+                    OR CMN_NAME LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+        ORDER BY 
+            CMN_CODE
+    </select>
+    
+    <!-- 공통코드 단건 조회 -->
+    <select id="selectCommonCode" resultType="com.example.cmtProject.dto.comm.CommonCodeDTO">
+        SELECT 
+            CMN_CODE as cmnCode,
+            CMN_NAME as cmnName,
+            CMN_CONTENT as cmnContent,
+            CMN_CODE_IS_ACTIVE as cmnCodeIsActive,
+            'select' as rowType
+        FROM 
+            COMMONCODE
+        WHERE 
+            CMN_CODE = #{code}
+    </select>
+    
+    <!-- 상세코드 목록 조회 -->
+    <select id="selectCommonCodeDetails" resultType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+        SELECT 
+            CMN_DETAIL_CODE as cmnDetailCode,
+            CMN_CODE as cmnCode,
+            CMN_DETAIL_NAME as cmnDetailName,
+            CMN_DETAIL_SORT_ORDER as cmnDetailSortOrder,
+            CMN_DETAIL_CONTENT as cmnDetailContent,
+            CMN_DETAIL_VALUE as cmnDetailValue,
+            CMN_DETAIL_CODE_IS_ACTIVE as cmnDetailCodeIsActive,
+            CMN_DETAIL_VALUE2,
+            'select' as rowType
+        FROM 
+            COMMONCODE_DETAIL
+        <where>
+            CMN_CODE = #{commonCode}
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    CMN_DETAIL_CODE LIKE '%' || #{keyword} || '%'
+                    OR CMN_DETAIL_NAME LIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+        ORDER BY 
+            CMN_DETAIL_SORT_ORDER, CMN_DETAIL_CODE
+    </select>
+    
+    <!-- 상세코드 단건 조회 -->
+    <select id="selectCommonCodeDetail" resultType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+        SELECT 
+            CMN_DETAIL_CODE as cmnDetailCode,
+            CMN_CODE as cmnCode,
+            CMN_DETAIL_NAME as cmnDetailName,
+            CMN_DETAIL_SORT_ORDER as cmnDetailSortOrder,
+            CMN_DETAIL_CONTENT as cmnDetailContent,
+            CMN_DETAIL_VALUE as cmnDetailValue,
+            CMN_DETAIL_CODE_IS_ACTIVE as cmnDetailCodeIsActive,
+            CMN_DETAIL_VALUE2,
+            'select' as rowType
+        FROM 
+            COMMONCODE_DETAIL
+        WHERE 
+            CMN_CODE = #{commonCode}
+            AND CMN_DETAIL_CODE = #{detailCode}
+    </select>
+    
+    <!-- 공통코드 등록 -->
+    <insert id="insertCommonCode" parameterType="com.example.cmtProject.dto.comm.CommonCodeDTO">
+        INSERT INTO COMMONCODE (
+            CMN_CODE,
+            CMN_NAME,
+            CMN_CONTENT,
+            CMN_CODE_IS_ACTIVE
+        ) VALUES (
+            #{cmnCode},
+            #{cmnName},
+            #{cmnContent},
+            #{cmnCodeIsActive}
+        )
+    </insert>
+    
+    <!-- 공통코드 수정 -->
+    <update id="updateCommonCode" parameterType="com.example.cmtProject.dto.comm.CommonCodeDTO">
+        UPDATE COMMONCODE
+        SET 
+            CMN_NAME = #{cmnName},
+            CMN_CONTENT = #{cmnContent},
+            CMN_CODE_IS_ACTIVE = #{cmnCodeIsActive}
+        WHERE 
+            CMN_CODE = #{cmnCode}
+    </update>
+    
+    <!-- 공통코드 삭제 -->
+    <delete id="deleteCommonCode">
+        DELETE FROM COMMONCODE
+        WHERE CMN_CODE = #{code}
+    </delete>
+    
+    <!-- 공통코드에 속한 모든 상세코드 삭제 -->
+    <delete id="deleteCommonCodeDetailsByCommonCode">
+        DELETE FROM COMMONCODE_DETAIL
+        WHERE CMN_CODE = #{commonCode}
+    </delete>
+    
+    <!-- 상세코드 등록 -->
+    <insert id="insertCommonCodeDetail" parameterType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+        INSERT INTO COMMONCODE_DETAIL (
+            CMN_DETAIL_CODE,
+            CMN_CODE,
+            CMN_DETAIL_NAME,
+            CMN_DETAIL_SORT_ORDER,
+            CMN_DETAIL_CONTENT,
+            CMN_DETAIL_VALUE,
+            CMN_DETAIL_CODE_IS_ACTIVE
+        ) VALUES (
+            #{cmnDetailCode},
+            #{cmnCode},
+            #{cmnDetailName},
+            #{cmnDetailSortOrder, jdbcType=INTEGER},
+            #{cmnDetailContent, jdbcType=VARCHAR},
+            #{cmnDetailValue, jdbcType=VARCHAR},
+            #{cmnDetailCodeIsActive, jdbcType=VARCHAR}
+        )
+    </insert>
+    
+    <!-- 상세코드 수정 -->
+    <update id="updateCommonCodeDetail" parameterType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+        UPDATE COMMONCODE_DETAIL
+        SET 
+            CMN_DETAIL_NAME = #{cmnDetailName},
+            CMN_DETAIL_SORT_ORDER = #{cmnDetailSortOrder},
+            CMN_DETAIL_CONTENT = #{cmnDetailContent},
+            CMN_DETAIL_VALUE = #{cmnDetailValue},
+            CMN_DETAIL_CODE_IS_ACTIVE = #{cmnDetailCodeIsActive}
+        WHERE 
+            CMN_CODE = #{cmnCode}
+            AND CMN_DETAIL_CODE = #{cmnDetailCode}
+    </update>
+    
+    <!-- 상세코드 삭제 -->
+    <delete id="deleteCommonCodeDetail">
+        DELETE FROM COMMONCODE_DETAIL
+        WHERE 
+            CMN_CODE = #{commonCode}
+            AND CMN_DETAIL_CODE = #{detailCode}
+    </delete>
+    
+    <select id="selectDetailCodeList" resultType="com.example.cmtProject.dto.comm.CommonCodeDetailDTO">
+	     SELECT 
+	      CMN_DETAIL_CODE   AS cmnDetailCode,
+	      CMN_DETAIL_NAME   AS cmnDetailName
+	    FROM 
+	      COMMONCODE_DETAIL
+	    WHERE 
+	      CMN_CODE = #{groupCode}
+	      AND CMN_DETAIL_CODE_IS_ACTIVE = 'Y'
+	    ORDER BY CMN_DETAIL_SORT_ORDER ASC
+    </select>
+    
+    
+    <select id="selectGroupList" resultType="String">
+    	SELECT CMN_CODE
+    	FROM COMMONCODE_DETAIL
+    
+    </select>
+  
+</mapper>

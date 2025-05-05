@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- TOAST UI Grid CSS -->
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.css" />
+
+    <!-- Bootstrap & App Styles -->
+    <link rel="stylesheet" href="/assets/css/bootstrap.css">
+    <link rel="stylesheet" href="/assets/vendors/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
+    
+    <!-- Summernote -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+
+    <!-- TOAST Grid JS -->
+    <script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.js" defer></script>
+    
+    <!-- jQuery -->
+    <script src="/js/jquery-3.7.1.js" defer></script>
+    
+    <style>
+        /* 필요한 경우 여기에 커스텀 CSS 작성 */
+    </style>
+</head>
+
+<body>
+
+    <div class="container mt-5">
+        <h3>공지사항</h3>
+
+        <!-- 공지사항 정보 카드 -->
+        <div class="card mt-4">
+            <div class="card-header d-flex align-items-center gap-3">
+                <h6 class="mb-0">사번</h6>
+                <span th:text="${notice.empId}"></span>
+                <h6 class="mb-0">작성자</h6>
+                <span th:text="${notice.empName}"></span>
+                <h6 class="mb-0">부서</h6>
+                <span th:text="${notice.deptName}"></span>
+                <h6 class="mb-0">직급</h6>
+                <span th:text="${notice.positionName}"></span>
+            </div>
+            <div class="card-header d-flex align-items-center gap-3">
+                <h6 class="mb-0">작성일</h6>
+                <span th:text="${notice.createdAt}"></span>
+            </div>
+        </div>
+
+        <!-- 공지사항 본문 카드 -->
+        <div class="card mt-4">
+            <div class="card-header d-flex align-items-center gap-3">
+                <h4 class="mb-0">제목</h4>
+                <span th:text="${notice.title}"></span>
+            </div>
+            <div class="card-body">
+                <span id="contentEditor" name="content" th:utext="${notice.content}" class="form-control"></span>
+            </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="mt-4">
+            <button th:onclick="|deleteNotice(${notice.noticeId})|" 
+                    th:if="${#authentication.name == notice.empId}" 
+                    class="form-control btn btn-danger mb-2">삭제</button>
+            <button th:if="${#authentication.name == notice.empId}" 
+                    class="form-control btn btn-secondary">수정</button>
+        </div>
+    </div>
+
+    <!-- 스크립트 영역 -->
+    <script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+
+    <script>
+        function deleteNotice(noticeId) {
+            Swal.fire({
+                title: '정말 삭제하시겠습니까?',
+                text: "삭제하면 복구할 수 없습니다!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '삭제',
+                cancelButtonText: '취소'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/deleteNotice/' + noticeId,
+                        method: 'POST',
+                        data: { noticeId: noticeId },
+                        success: function(response) {
+                            Swal.fire(
+                                '삭제되었습니다!',
+                                '공지사항이 삭제되었습니다.',
+                                'success'
+                            ).then(() => {
+                                window.close();
+                            });
+                        },
+                        error: function(error) {
+                            Swal.fire(
+                                '에러!',
+                                '삭제 중 문제가 발생했습니다.',
+                                'error'
+                            );
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

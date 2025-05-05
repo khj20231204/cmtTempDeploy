@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.erp.attendanceMgt.AttendsMapper">
+
+
+	<!-- 어드민 모든 출결 정보 조회 -->
+	<select id="getAllAttends" resultType="com.example.cmtProject.dto.erp.attendanceMgt.AttendDTO">
+		SELECT 
+		    A.ATD_NO, 
+		    A.EMP_NO, 
+		    A.EMP_NAME, 
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    A.ATD_DATE, 
+		    A.ATD_LEAVE, 
+		    A.ATD_TYPE, 
+		    A.ATD_STATUS, 
+		    A.ATD_REMARKS,
+		   <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_STATUS.CMN_DETAIL_VALUE || '">' || C_STATUS.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS STATUS_LINK,
+	       <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_TYPE.CMN_DETAIL_VALUE || '">' || C_TYPE.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS TYPE_LINK
+		FROM ATTENDS A
+		JOIN EMPLOYEES E ON A.EMP_NO = E.EMP_NO
+<!-- 	상태용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_STATUS ON A.ATD_STATUS = C_STATUS.CMN_DETAIL_CODE
+		
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON A.ATD_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!--  	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		
+		ORDER BY A.ATD_DATE DESC
+		
+	</select>
+	
+	<!-- 매니저 같은 부서 출결 정보 조회 -->
+	<select id="getAttendsByDept" resultType="com.example.cmtProject.dto.erp.attendanceMgt.AttendDTO">
+		SELECT 
+		    A.ATD_NO, 
+		    A.EMP_NO, 
+		    A.EMP_NAME, 
+		    C_DEPT.CMN_DETAIL_NAME AS dept_name,
+		    A.ATD_DATE, 
+		    A.ATD_LEAVE, 
+		    A.ATD_TYPE, 
+		    A.ATD_STATUS, 
+		    A.ATD_REMARKS,
+		   <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_STATUS.CMN_DETAIL_VALUE || '">' || C_STATUS.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS statusLink,
+	       <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_TYPE.CMN_DETAIL_VALUE || '">' || C_TYPE.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS typeLink
+		FROM ATTENDS A
+		JOIN EMPLOYEES E ON A.EMP_NO = E.EMP_NO
+<!-- 	상태용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_STATUS ON A.ATD_STATUS = C_STATUS.CMN_DETAIL_CODE
+		
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON A.ATD_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!--  	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.DEPT_NO = #{deptNo}
+		ORDER BY A.ATD_DATE DESC
+	</select>
+	
+	<!-- 유저 개인 출결 정보 조회 -->
+	<select id="getAttendsByEmpNo" resultType="com.example.cmtProject.dto.erp.attendanceMgt.AttendDTO">
+		SELECT 
+		    A.ATD_NO, 
+		    A.EMP_NO, 
+		    A.EMP_NAME, 
+		    C_DEPT.CMN_DETAIL_NAME AS dept_name,
+		    A.ATD_DATE, 
+		    A.ATD_LEAVE, 
+		    A.ATD_TYPE, 
+		    A.ATD_STATUS, 
+		    A.ATD_REMARKS,
+		   <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_STATUS.CMN_DETAIL_VALUE || '">' || C_STATUS.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS statusLink,
+	       <![CDATA[
+	       '<a class="btn btn-sm btn-' || C_TYPE.CMN_DETAIL_VALUE || '">' || C_TYPE.CMN_DETAIL_NAME || '</a>'
+	       ]]> AS typeLink
+		FROM ATTENDS A
+		JOIN EMPLOYEES E ON A.EMP_NO = E.EMP_NO
+<!-- 	상태용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_STATUS ON A.ATD_STATUS = C_STATUS.CMN_DETAIL_CODE
+		
+<!-- 	타입용 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_TYPE ON A.ATD_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+<!--  	부서명 커먼코드 조인 -->
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE A.EMP_NO = #{empNo}
+		ORDER BY A.ATD_DATE DESC
+	</select>
+    
+    <!-- 오늘 출근 했는지 조회 -->
+	<select id="hasCheckedInToday" resultType="boolean">
+	    SELECT CASE 
+	             WHEN COUNT(*) > 0 THEN 1 
+	             ELSE 0 
+	           END
+	    FROM ATTENDS
+	    WHERE EMP_NO = #{empNo}
+	      AND ATD_DATE BETWEEN #{start} AND #{end}
+	</select>
+	
+	<!-- 사용자의 가장 최근 출근 ATD_NO 조회 -->
+	<select id="findLatestCheckInAtdNo" resultType="Long">
+		SELECT ATD_NO
+	    FROM ATTENDS
+	    WHERE EMP_NO = #{empNo}
+	      AND ATD_TYPE = 'ATT001'
+	      AND ATD_DATE >= SYSDATE - INTERVAL '1' DAY
+	    ORDER BY ATD_DATE DESC
+	    FETCH FIRST 1 ROWS ONLY
+	</select>
+	
+    <!-- 오늘 퇴근 했는지 조회 -->
+	<select id="hasCheckedOutToday" resultType="boolean">
+	    SELECT CASE 
+	             WHEN COUNT(*) > 0 THEN 1 
+	             ELSE 0 
+	           END
+	    FROM ATTENDS
+	    WHERE ATD_NO = #{atdNo}
+	      AND ATD_LEAVE BETWEEN #{start} AND #{end}
+	</select>
+	
+	<!-- 퇴근 시간 업데이트 -->
+	<update id="updateAttendLeave">
+	    UPDATE ATTENDS
+	    SET ATD_LEAVE = #{atdLeave},
+	    	ATD_TYPE = #{atdType}
+	    WHERE ATD_NO = #{atdNo}
+	</update>
+	
+	<insert id="insertAttend">
+		INSERT INTO ATTENDS(EMP_NO, EMP_NAME, ATD_DATE, ATD_STATUS, ATD_TYPE)
+		VALUES(#{emp.empNo}, #{emp.empName}, #{dto.atdDate, jdbcType=TIMESTAMP}, #{dto.atdStatus, jdbcType=VARCHAR}, #{dto.atdType})
+	</insert>
+	
+	<!-- 결근 체크 -->
+	<select id="existsAttendStatus" resultType="boolean">
+    SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+    FROM ATTENDS
+    WHERE EMP_NO = #{empNo}
+      AND ATD_DATE = #{date}
+	</select>
+	
+	
+</mapper>

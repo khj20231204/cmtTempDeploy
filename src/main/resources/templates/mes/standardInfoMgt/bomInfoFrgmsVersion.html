@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+		  
+	<head>
+			
+	<!-- pagination -->
+	<script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.min.js"></script>
+			
+	<!-- toast 부트스트랩 기본  -->
+ 	<link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.css" /> 
+ 	<script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.js"></script> 
+			
+	<!-- grid -->
+	<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+	<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" />
+		
+    <meta charset="UTF-8">
+    <title>BOM 정보</title>
+ 
+    <style>
+        body { background-color: #f4f8fc; }
+        .container { background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h4 { margin-bottom: 1.5rem; }
+        .section-title { margin-top: 2rem; font-weight: bold; }
+        .btn-upload { background-color: #007bff; color: white; }
+        .btn-download { background-color: #28a745; color: white; }
+        table thead { background-color: #f1f5fb; }
+		.filediv {display: flex;}
+    </style>
+</head>
+<body>
+	<div layout:fragment="content">
+	<h4>BOM 정보</h4>
+	<div class="container mt-5">
+	    <div class="row mb-3">
+	        <div class="col-md-3">
+	            <input type="month" class="form-control" placeholder="등록월">
+	        </div>
+	        <div class="col-md-4">
+	            <div class="input-group">
+	                <input type="text" class="form-control" placeholder="상품명을 입력해주세요.">
+	                <button class="btn btn-outline-secondary" type="button">
+	                    <i class="bi bi-search"></i>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+
+		<div class="text-end filediv">
+            <input type="file" id="fileUpload" hidden>
+            <input type="file" class="form-control" id="fileInput" accept=".xlsx" style="width: 400px;">
+            <button class="btn btn-upload" style="margin-right: 10px;margin-left: 10px;">엑셀 파일 업로드</button>
+            <button class="btn btn-download" onclick="downloadExcel()">BOM 엑셀 양식 다운로드</button>
+        </div>
+					
+	    <div class="text-end mb-2">
+	        <button class="btn btn-outline-primary">상품등록</button>
+	    </div>
+
+	    <h6 class="section-title">상품</h6>
+		<!-- grid 사용, window.pdtGrid로 접근하기위해 이름을 ptdGrid로 설정  -->
+		<div th:replace="~{fragments/gridLayout :: tuiGrid('pdtGrid', ${pdtGridOptions})}"></div>
+
+	    <h6 class="section-title">BOM</h6>
+		<!-- grid 사용 -->
+		<div th:replace="~{fragments/gridLayout :: tuiGrid('bomGrid', ${bomGridOptions})}"></div>
+		
+	</div><!-- <div class="container mt-5"> -->
+		
+	<script>
+		
+		document.addEventListener("DOMContentLoaded", function () {
+	         // gridId가 pdtGrid라고 가정
+	         window.pdtGrid.on('click', ev => {
+				
+	             const rowKey = ev.rowKey;
+	             const rowData = window.pdtGrid.getRow(rowKey);
+
+	             if (rowData) {
+	                 let productCode = rowData.pdtCode; // 예: PDT_CODE 컬럼
+	                 console.log("선택된 제품코드:", productCode);
+
+					 
+	                 // AJAX 요청으로 BOM 데이터 불러오기
+	                 $.ajax({
+	                     url: '/bom/bom-selected-frgmsVersion', // 컨트롤러에서 이 경로 처리
+	                     type: 'GET',
+	                     data: { productCode: productCode },
+	                     success: function (bomData) {
+														
+							for (let col of bomData.COLUMNS) {
+								col.name = col.NAME
+								col.header = col.HEADER
+								delete col.NAME
+								delete col.HEADER
+							}
+							
+	                         console.log("BOM:", bomData);
+							 console.log("BOM.COLUMNS 데이터:", bomData.COLUMNS);
+							 console.log("BOM.data 데이터:", bomData.DATA);
+							 
+							 
+							 // bomData = {}
+							 // bomData.columns = [{name: 'test', header: '제품 코드'}]
+							 // bomData.data = [{test: 'zxc'}, {test: 'qwe'}]
+							 // console.log("TEST:", bomData);
+							 
+	                         // 아래 그리드에 데이터 갱신
+	                         if (window.bomGrid) {
+	                             window.bomGrid.setColumns(bomData.COLUMNS);
+								 window.bomGrid.resetData(bomData.DATA);
+	                         }
+	                     },
+	                     error: function (err) {
+	                         console.error("BOM 데이터 로딩 실패", err);
+	                     }
+	                 });
+	             }
+	         });
+	     });  
+		 
+		 
+  	    const fileUpload = document.getElementById("fileUpload");
+  	    const fileName = document.getElementById("fileName");
+  	    fileUpload.addEventListener("change", function () {
+  	        fileName.textContent = this.files.length > 0 ? this.files[0].name : "선택된 파일 없음";
+  	    });
+  		
+  		
+  		function downloadExcel() {
+              window.location.href = "/bom/excel-file-down";
+          }
+		  
+		  
+		  
+		  
+		  
+  	</script>
+		
+		
+		
+	</div><!-- <div layout:fragment="content"> -->
+
+		
+	</body>
+	
+	
+	</html>

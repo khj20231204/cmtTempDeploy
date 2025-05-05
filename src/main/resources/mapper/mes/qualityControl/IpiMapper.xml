@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.mes.qualityControl.IpiMapper">
+
+	<select id="getAllIpi" resultType="com.example.cmtProject.dto.mes.qualityControl.IpiDTO">
+	SELECT DISTINCT
+        I.IPI_NO,
+        I.IPI_CODE,
+        I.CHILD_LOT_CODE,
+        E.EMP_NAME,
+        E.EMP_ID,
+        I.QCM_NAME,
+        P.PDT_NAME,
+        I.IPI_START_TIME,
+        I.IPI_END_TIME,
+        I.WO_QTY,
+        I.UNIT_QTY,
+        I.IPI_MEASURED_WEIGHT_VALUE,
+        I.IPI_MEASURED_LENGTH_VALUE,
+        C_UNIT_LENGTH.CMN_DETAIL_NAME AS QCM_UNIT_LENGTH,
+		C_UNIT_WEIGHT.CMN_DETAIL_NAME AS QCM_UNIT_WEIGHT,
+		I.IPI_INSPECTION_STATUS,
+		I.IPI_INSPECTION_RESULT,
+        I.WHS_NAME,
+        I.LOT_NO,
+        I.IPI_REMARKS,
+        I.WO_CODE
+    FROM IPI I
+    LEFT JOIN COMMONCODE_DETAIL C_UNIT_LENGTH ON C_UNIT_LENGTH.CMN_DETAIL_NAME = I.QCM_UNIT_LENGTH
+	LEFT JOIN COMMONCODE_DETAIL C_UNIT_WEIGHT ON C_UNIT_WEIGHT.CMN_DETAIL_NAME = I.QCM_UNIT_WEIGHT	
+	LEFT JOIN EMPLOYEES E ON E.EMP_ID = I.EMP_ID
+	JOIN PRODUCTS P ON P.PDT_CODE = I.PDT_CODE
+	WHERE I.IPI_VISIABLE = 'Y'
+    ORDER BY IPI_NO DESC
+	</select>
+	
+	<!-- 비고란 업데이트 -->
+	<update id="ipiRemarksAndQcmNameUpdate" parameterType="com.example.cmtProject.dto.mes.qualityControl.IpiDTO">
+		UPDATE IPI
+		SET 
+			IPI_REMARKS = #{ipiRemarks},
+			QCM_NAME = #{qcmName, jdbcType=VARCHAR},
+			QCM_UNIT_WEIGHT = #{qcmUnitWeight},
+			QCM_UNIT_LENGTH = #{qcmUnitLength}
+		WHERE IPI_NO = #{ipiNo}
+	</update>
+	
+	<!-- 삭제 대신 안보이게 업데이트 -->
+	<update id="isVisiableToFalse" parameterType="list">
+	  UPDATE IPI
+	  SET IPI_VISIABLE = 'N'
+	  WHERE IPI_NO IN (
+	    <foreach item="id" collection="list" separator=",">
+	      #{id}
+	    </foreach>
+	  )
+	</update>
+	
+	
+	<!-- 엑셀 데이터 업데이트 -->
+	<update id="saveExcelData" parameterType="com.example.cmtProject.dto.mes.qualityControl.IpiDTO">
+		UPDATE IPI
+	    SET
+	    	CHILD_LOT_CODE              = #{childLotCode},
+	        IPI_INSPECTION_STATUS       = #{ipiInspectionStatus},
+	        IPI_INSPECTION_RESULT       = #{ipiInspectionResult},
+	        IPI_CODE                    = #{ipiCode},
+	        QCM_NAME                    = #{qcmName},
+	        EMP_NAME                    = #{empName},
+	        EMP_ID                      = #{empId},
+	        PDT_NAME                    = #{pdtName},
+	        WO_QTY                 	    = #{woQty},
+	        UNIT_QTY                    = #{unitQty},
+	        IPI_MEASURED_WEIGHT_VALUE   = #{ipiMeasuredWeightValue},
+	        QCM_UNIT_WEIGHT             = #{qcmUnitWeight},
+	        IPI_MEASURED_LENGTH_VALUE   = #{ipiMeasuredLengthValue},
+	        QCM_UNIT_LENGTH             = #{qcmUnitLength},
+	        IPI_START_TIME              = #{ipiStartTime},
+	        IPI_END_TIME                = #{ipiEndTime},
+	        WHS_NAME                    = #{whsName},
+	        IPI_REMARKS                 = #{ipiRemarks}
+	    WHERE IPI_NO = #{ipiNo}
+	</update>
+	
+	
+	<!-- 물건 공정 검사시 검사 검사전과 필요한 데이터 가져오기 -->
+	<select id="getLot" resultType="map">
+		SELECT 
+			WO_CODE,
+			CHILD_PDT_CODE,
+			WO_QTY
+		FROM
+			LOT
+		WHERE WO_CODE = #{woCode}
+	</select>
+	
+	<!-- IPI CODE 생성 및 최대값 가져오는 코드 -->
+	<select id="getMaxIpiCodeSeq" resultType="int" parameterType="string">
+	  SELECT 
+	    COALESCE(MAX(TO_NUMBER(SUBSTR(IPI_CODE, 14))), 0)
+	  FROM 
+	    IPI
+	  WHERE 
+	    SUBSTR(IPI_CODE, 5, 8) = #{datePart}
+	</select>
+
+	<!-- 공정검사가 되기전 검사 시작 눌렀을시 저장될 데이터들 -->
+	<insert id="insertIpiInspectionList" parameterType="map">
+	INSERT INTO IPI (
+	  IPI_INSPECTION_STATUS,
+	  IPI_INSPECTION_RESULT,
+	  IPI_CODE, 
+	  RECEIPT_CODE,
+	  CHILD_PDT_CODE, 
+	  WO_QTY, 
+	  UNIT_QTY,
+	  IPI_VISIABLE
+	)
+	SELECT
+	  '검사시작',
+	  '예정',
+	  #{ipiCode},
+	  #{woCode}, 
+	  #{childPdtCode}, 
+	  #{woQty},
+	  '개',
+	  'Y'
+	FROM DUAL
+	WHERE NOT EXISTS (
+	  SELECT 1 FROM IPI WHERE WO_CODE = #{woCode}
+	)
+	</insert>
+	
+	<!-- 검사전에서 검사중으로 업데이트 -->
+	<update id="updateIpiInspectionStatusProcessing" parameterType="map">
+		UPDATE IPI
+		SET 
+			IPI_INSPECTION_STATUS = '검사중',
+			EMP_NAME = #{emp.empName},
+			EMP_ID = #{emp.empId},
+			IPI_START_TIME = #{ipi.ipiStartTime}
+		WHERE IPI_CODE = #{ipi.ipiCode}
+	</update>
+	
+	
+	<!-- 검사중에서 검사완료로 업데이트 -->
+	<update id="updateIpiInspectionStatusComplete" parameterType="com.example.cmtProject.dto.mes.qualityControl.IpiDTO">
+		UPDATE IPI
+		SET 
+			IPI_INSPECTION_STATUS = '검사완료',
+			IPI_END_TIME = #{ipiEndTime}
+		WHERE IPI_CODE = #{ipiCode}
+	</update>
+	
+	<select id="selectQcmInfoByIpiCode" parameterType="string" resultType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+	    SELECT 
+	        Q.QCM_MIN_VALUE,
+	        Q.QCM_MAX_VALUE,
+	        Q.QCM_UNIT_WEIGHT,
+      		Q.QCM_UNIT_LENGTH
+	    FROM IPI I
+	    JOIN QCM Q ON I.QCM_NAME = Q.QCM_NAME
+	    WHERE I.IPI_CODE = #{ipiCode}
+	</select>
+	
+	<update id="updateMeasuredValues" parameterType="map">
+	    UPDATE IPI
+	    SET
+	    	IPI_MEASURED_WEIGHT_VALUE = #{weightValue},
+	        IPI_MEASURED_LENGTH_VALUE = #{lengthValue},
+	        IPI_INSPECTION_RESULT = #{result}
+	    WHERE IPI_CODE = #{ipiCode}
+	</update>
+	
+	<!-- 도넛 차트 값 넘겨주는 쿼리 -->
+	<select id="getSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+	SELECT 
+        SUM(CASE WHEN IPI_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+        SUM(CASE WHEN IPI_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+        SUM(CASE WHEN IPI_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+    FROM IPI
+        WHERE IPI_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND IPI_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        ORDER BY TO_CHAR(IPI_START_TIME, 'YYYYMMDD')
+	</select>
+	
+	<!-- 최근 7일 PASS, IN_PROGRESS, FAIL 개수 조회 -->
+    <select id="getLast7DaysSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+        SELECT
+        	TO_CHAR(IPI_START_TIME, 'YYYYMMDD') AS ipiDate,
+            SUM(CASE WHEN IPI_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+            SUM(CASE WHEN IPI_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+            SUM(CASE WHEN IPI_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+        FROM IPI
+        WHERE IPI_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND IPI_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        GROUP BY TO_CHAR(IPI_START_TIME, 'YYYYMMDD')
+        ORDER BY TO_CHAR(IPI_START_TIME, 'YYYYMMDD')
+    </select>
+	
+
+
+</mapper>

@@ -1,0 +1,27 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21  # AWS가 제공하는 JDK 21 사용
+  pre_build:
+    commands:
+      - echo Build started on `date`
+      - chmod +x gradlew  # gradlew 실행 권한 부여
+  build:
+    commands:
+      - echo Building the Spring Boot application
+      - java -version
+      - echo "===== BUILD START ====="
+      - ./gradlew clean bootWar --stacktrace
+      - echo "===== BUILD END ====="
+      - ls -l build/libs/
+      - mv build/libs/*.war myapp.war
+  post_build:
+    commands:
+      - echo Build and packaging completed on `date`
+artifacts:
+  files:
+    - myapp.war
+    - appspec.yml
+    - scripts/*

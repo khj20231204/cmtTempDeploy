@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	
+<head>
+	<!--부트스트랩 기본 차트 -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- toast 차트 : 5,6,7,8,9,10 -->
+	<script src="https://uicdn.toast.com/chart/latest/toastui-chart.min.js"></script>
+
+	<!-- apex 차트 : 4,5,6,7,8,9,10-->	
+	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+	
+	<!-- jquery -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	
+    <title>차트</title>
+	
+	<style>
+		table {
+			border : 1px solid black;
+			width: 900px;
+		}
+		
+		tr, td {
+			border : 1px solid black;
+		}
+		
+		tr {
+			text-align: center;
+		}
+		
+		canvas {
+			max-width: 100%; /* 셀 크기에 맞게 조정 */
+			height: auto;
+		}
+		
+		button {
+			cursor: pointer;
+			
+		}
+	</style>
+	
+	<script>
+		
+	</script>
+</head>
+<body>
+   
+        <h3>차트</h3>
+        
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						myChart1<br>
+						<canvas id="myChart1"></canvas> 
+						<br>
+						<button class="btn btn-light" id="btnMychart1">[소스보기]</a>
+					</td>
+					<td>
+						<br>myChart2<br>
+						<canvas id="myChart2"></canvas>
+						<br>
+						<button class="btn btn-light" id="btnMychart2">[소스보기]</a>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<br>myChart3<br>
+						<canvas id="myChart3"></canvas>
+						<br>
+						<button class="btn btn-light" id="btnMychart3">[소스보기]</a>
+					</td>
+					<td>
+						<br>myChart4<br>
+						<div id="myChart4"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart4">[소스보기]</a>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<br>myChart5<br>
+						<div id="myChart5"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart5">[소스보기]</a>		
+					</td>
+					<td>
+						<br>myChart6<br>
+						<div id="myChart6"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart6">[소스보기]</a>		
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<br>myChart7<br>
+						<div id="myChart7"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart7">[소스보기]</a>	
+					</td>
+					<td>
+						<br>myChart8<br>
+						<div id="myChart8"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart8">[소스보기]</a>	
+					</td>
+				</tr>
+				
+				<tr>
+					<td>
+						<br>myChart9<br>
+						<div id="myChart9"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart9">[소스보기]</a>	
+					</td>
+					<td>
+						<br>myChart10<br>
+						<div id="myChart10"></div>
+						<br>
+						<button class="btn btn-light" id="btnMychart10">[소스보기]</a>	
+					</td>
+				</tr>
+			</tbody>
+		</table>
+    </div>
+
+   	<!-- 페이지 내용 작성 영역 끝 -->
+    
+    <!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->
+
+	<script>
+		
+		$(document).ready(function(){
+			let selectedId = "";
+						
+			$('button').click(function(){
+				selectedId = this.id;
+			
+				console.log(window[selectedId]);
+			})
+		});
+		
+		
+		
+		// =============================================================================== myChart1 ===============================================================================
+		
+		var ctx1 = document.getElementById('myChart1').getContext('2d');
+		
+		var myChart = new Chart(ctx1, {
+		    type: 'radar', // 차트 유형 ('bar', 'line', 'pie', 'doughnut', 'radar' 등)
+		    data: {
+		        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+		        datasets: [{
+		            label: '색상별 값',
+		            data: [12, 19, 3, 5, 2, 3], // 데이터 값
+		            backgroundColor: [
+		                'rgba(255, 99, 132, 0.2)',
+		                'rgba(54, 162, 235, 0.2)',
+		                'rgba(255, 206, 86, 0.2)',
+		                'rgba(75, 192, 192, 0.2)',
+		                'rgba(153, 102, 255, 0.2)',
+		                'rgba(255, 159, 64, 0.2)'
+		            ],
+		            borderColor: [
+		                'rgba(255, 99, 132, 1)',
+		                'rgba(54, 162, 235, 1)',
+		                'rgba(255, 206, 86, 1)',
+		                'rgba(75, 192, 192, 1)',
+		                'rgba(153, 102, 255, 1)',
+		                'rgba(255, 159, 64, 1)'
+		            ],
+		            borderWidth: 0.5
+		        }]
+		    }
+		}); 
+		
+		btnMychart1 = `
+		<canvas id="myChart1"></canvas> 
+		
+		var ctx1 = document.getElementById('myChart1').getContext('2d');
+				
+		var myChart = new Chart(ctx1, {
+		    type: 'radar', // 차트 유형 ('bar', 'line', 'pie', 'doughnut', 'radar' 등)
+		    data: {
+		        labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+		        datasets: [{
+		            label: '색상별 값',
+		            data: [12, 19, 3, 5, 2, 3], // 데이터 값
+		            backgroundColor: [
+		                'rgba(255, 99, 132, 0.2)',
+		                'rgba(54, 162, 235, 0.2)',
+		                'rgba(255, 206, 86, 0.2)',
+		                'rgba(75, 192, 192, 0.2)',
+		                'rgba(153, 102, 255, 0.2)',
+		                'rgba(255, 159, 64, 0.2)'
+		            ],
+		            borderColor: [
+		                'rgba(255, 99, 132, 1)',
+		                'rgba(54, 162, 235, 1)',
+		                'rgba(255, 206, 86, 1)',
+		                'rgba(75, 192, 192, 1)',
+		                'rgba(153, 102, 255, 1)',
+		                'rgba(255, 159, 64, 1)'
+		            ],
+		            borderWidth: 0.5
+		        }]
+		    }
+		}); 
+		`
+		
+		// =============================================================================== myChart2 ===============================================================================
+		
+		var ctx2 = document.getElementById('myChart2').getContext('2d');
+		
+		var lineChart = new Chart(ctx2, {
+		    type: 'line',
+		    data: {
+		        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+		        datasets: [{
+		            label: '매출',
+		            data: [10, 20, 15, 30, 25],
+		            borderColor: 'rgba(75, 192, 192, 1)',
+		            borderWidth: 1,
+		            fill: false
+		        }]
+		    }
+		});
+		
+		btnMychart2 = `
+		<canvas id="myChart2"></canvas>
+	
+		var ctx2 = document.getElementById('myChart2').getContext('2d');
+				
+		var lineChart = new Chart(ctx2, {
+		    type: 'line',
+		    data: {
+		        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+		        datasets: [{
+		            label: '매출',
+		            data: [10, 20, 15, 30, 25],
+		            borderColor: 'rgba(75, 192, 192, 1)',
+		            borderWidth: 1,
+		            fill: false
+		        }]
+		    }
+		});
+		`
+		// =============================================================================== myChart3 ===============================================================================
+		
+		var ctx3 = document.getElementById('myChart3').getContext('2d');
+		
+		var pieChart = new Chart(ctx3, {
+		    type: 'doughnut', // 차트 유형 ('bar', 'line', 'pie', 'doughnut', 'radar' 등)
+		    data: {
+		        labels: ['A', 'B', 'C'],
+		        datasets: [{
+		            data: [30, 50, 20],
+		            backgroundColor: ['red', 'blue', 'green']
+		        }]
+		    }
+		});
+		
+		btnMychart3 = `
+		<canvas id="myChart3"></canvas>
+		
+		var ctx3 = document.getElementById('myChart3').getContext('2d');
+			
+		var pieChart = new Chart(ctx3, {
+		    type: 'doughnut', // 차트 유형 ('bar', 'line', 'pie', 'doughnut', 'radar' 등)
+		    data: {
+		        labels: ['A', 'B', 'C'],
+		        datasets: [{
+		            data: [30, 50, 20],
+		            backgroundColor: ['red', 'blue', 'green']
+		        }]
+		    }
+		});
+		`
+		// =============================================================================== myChart4 ===============================================================================
+		
+		var options4 = {
+		       chart: {
+		           type: 'line', // 차트 타입 (line, bar, pie 등)
+		           height: 350
+		       },
+		       series: [{
+		           name: '매출',
+		           data: [40, 10, 3, 30, 50]
+		       }],
+		       xaxis: {
+		           categories: ['월', '화', '수', '목', '금']
+		       }
+		   };
+		
+		 var chart4 = new ApexCharts(document.querySelector("#myChart4"), options4);
+		 chart4.render();
+		 
+		 btnMychart4 = `
+		 <div id="myChart4"></div>
+		 
+		 var options4 = {
+	       chart: {
+	           type: 'line', // 차트 타입 (line, bar, pie 등)
+	           height: 350
+	       },
+	       series: [{
+	           name: '매출',
+	           data: [40, 10, 3, 30, 50]
+	       }],
+	       xaxis: {
+	           categories: ['월', '화', '수', '목', '금']
+	       }
+	   	};
+		 		
+ 		 var chart4 = new ApexCharts(document.querySelector("#myChart4"), options4);
+ 		 chart4.render();
+		 `
+		
+		// =============================================================================== myChart5 =============================================================================== 
+		const data5 = {
+		    categories: [
+		        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+		    ],
+		    series: [
+		        {
+		            name: 'Seoul',
+		            data: [20, 40, 25, 50, 15, 45, 33, 34, 20, 30, 22, 13],
+		        },
+		        {
+		            name: 'Sydney',
+		            data: [5, 30, 21, 18, 59, 50, 28, 33, 7, 20, 10, 30],
+		        },
+		        {
+		            name: 'Moskva',
+		            data: [30, 5, 18, 21, 33, 41, 29, 15, 30, 10, 33, 5],
+		        },
+		    ],
+		};
+		
+		const options5 = {
+		    chart: { width: 500, height: 400 },
+		    series: { stack: false }, // false: 개별 출력, true: 스택형(누적) 출력
+		    legend: { align: 'bottom' },
+		};
+		
+		toastui.Chart.barChart({ 
+			        	el: document.getElementById('myChart5'), 
+			        	data: data5, 
+			        	options: options5 });
+		
+		btnMychart5 = `
+		
+		<div id="myChart5"></div>
+		
+		const data5 = {
+		    categories: [
+		        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+		    ],
+		    series: [
+		        {
+		            name: 'Seoul',
+		            data: [20, 40, 25, 50, 15, 45, 33, 34, 20, 30, 22, 13],
+		        },
+		        {
+		            name: 'Sydney',
+		            data: [5, 30, 21, 18, 59, 50, 28, 33, 7, 20, 10, 30],
+		        },
+		        {
+		            name: 'Moskva',
+		            data: [30, 5, 18, 21, 33, 41, 29, 15, 30, 10, 33, 5],
+		        },
+		    ],
+		};
+		
+		const options5 = {
+		    chart: { width: 500, height: 400 },
+		    series: { stack: false }, // false: 개별 출력, true: 스택형(누적) 출력
+		    legend: { align: 'bottom' },
+		};
+		
+		toastui.Chart.barChart({ 
+	    	el: document.getElementById('myChart5'), 
+	    	data: data5, 
+	    	options: options5 });
+		`					
+	
+		// =============================================================================== myChart6 =============================================================================== 
+		const data6 = {
+		  categories: [
+		    'Jan',
+		    'Feb',
+		    'Mar',
+		    'Apr',
+		    'May',
+		    'June',
+		    'July',
+		    'Aug',
+		    'Sep',
+		    'Oct',
+		    'Nov',
+		    'Dec',
+		  ],
+		  series: [
+		    {
+		      name: 'Seoul',
+		      data: [20, 40, 25, 50, 15, 45, 33, 34, 20, 30, 22, 13],
+		    },
+		    {
+		      name: 'Sydney',
+		      data: [5, 30, 21, 18, 59, 50, 28, 33, 7, 20, 10, 30],
+		    },
+		    {
+		      name: 'Moskva',
+		      data: [30, 5, 18, 21, 33, 41, 29, 15, 30, 10, 33, 5],
+		    },
+		  ],
+		}
+		
+		const options6 = {
+				chart: { width: 500, height: 400 },
+				series: {
+				    showDot: true,
+				    spline: true,
+				    zoomable: true,
+				    eventDetectType: 'nearest',//'near' | 'nearest' | 'grouped',
+				    shift: true,
+				    stack: true | {
+				      type: 'percent'//  'percent',
+				    },
+				  }
+				}
+		
+		toastui.Chart.barChart({ 
+			el: document.getElementById('myChart6'), 
+			data: data6, 
+			options: options6 });
+
+		btnMychart6 = `
+		<div id="myChart6"></div>
+		
+		const data6 = {
+		  categories: [
+		    'Jan',
+		    'Feb',
+		    'Mar',
+		    'Apr',
+		    'May',
+		    'June',
+		    'July',
+		    'Aug',
+		    'Sep',
+		    'Oct',
+		    'Nov',
+		    'Dec',
+		  ],
+		  series: [
+		    {
+		      name: 'Seoul',
+		      data: [20, 40, 25, 50, 15, 45, 33, 34, 20, 30, 22, 13],
+		    },
+		    {
+		      name: 'Sydney',
+		      data: [5, 30, 21, 18, 59, 50, 28, 33, 7, 20, 10, 30],
+		    },
+		    {
+		      name: 'Moskva',
+		      data: [30, 5, 18, 21, 33, 41, 29, 15, 30, 10, 33, 5],
+		    },
+		  ],
+		}
+		
+		const options6 = {
+			chart: { width: 500, height: 400 },
+			series: {
+			    showDot: true,
+			    spline: true,
+			    zoomable: true,
+			    eventDetectType: 'nearest',//'near' | 'nearest' | 'grouped',
+			    shift: true,
+			    stack: true | {
+			      type: 'percent'//  'percent',
+			    },
+			  }
+			}
+		
+		toastui.Chart.barChart({ 
+			el: document.getElementById('myChart6'), 
+			data: data6, 
+			options: options6 });
+		`
+			
+		// =============================================================================== myChart7 ===============================================================================
+	    
+	   	 var barOptions = {
+	         chart: { type: 'bar', height: 350 },
+	         series: [{ name: '매출', data: [30, 40, 45, 50, 49, 60, 70] }],
+	         xaxis: { categories: ['월', '화', '수', '목', '금', '토', '일'] }
+	     };
+	
+	     var barChart = new ApexCharts(document.querySelector("#myChart7"), barOptions);
+	     barChart.render();   
+		 
+		 btnMychart7 = `
+		 <div id="myChart7"></div>
+		 
+		 var barOptions = {
+ 	         chart: { type: 'bar', height: 350 },
+ 	         series: [{ name: '매출', data: [30, 40, 45, 50, 49, 60, 70] }],
+ 	         xaxis: { categories: ['월', '화', '수', '목', '금', '토', '일'] }
+ 	     };
+ 	
+ 	     var barChart = new ApexCharts(document.querySelector("#myChart7"), barOptions);
+ 	     barChart.render();   
+		 `
+		 // =============================================================================== myChart8 ===============================================================================
+		 
+		 var pieOptions = {
+		         chart: { type: 'pie', height: 350 },
+		         series: [44, 55, 13,  33],
+		         labels: ['Apple', 'Samsung', 'Xiaomi', 'Oppo']
+		     };
+	
+	     var pieChart = new ApexCharts(document.querySelector("#myChart8"), pieOptions);
+	     pieChart.render();
+		 
+		 btnMychart8 = `
+		 <div id="myChart8"></div>
+		 
+		 var pieOptions = {
+ 	         chart: { type: 'pie', height: 350 },
+ 	         series: [44, 55, 13,  33],
+ 	         labels: ['Apple', 'Samsung', 'Xiaomi', 'Oppo']
+ 	     };
+
+      	 var pieChart = new ApexCharts(document.querySelector("#myChart8"), pieOptions);
+      	 pieChart.render();
+			
+		 `
+		 // =============================================================================== myChart9 ===============================================================================
+		 var options9 = {
+             chart: {
+                 type: 'area', // 라인 영역 차트
+                 height: 350
+             },
+             series: [
+                 {
+                     name: "매출",
+                     data: [20, 40, 35, 50, 49, 60, 70, 91, 125]
+                 }
+             ],
+             xaxis: {
+                 categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+             },
+             colors: ["#008FFB"], // 색상 변경 가능
+             fill: {
+                 type: "gradient",
+                 gradient: {
+                     shadeIntensity: 1,
+                     opacityFrom: 0.7,
+                     opacityTo: 0.3,
+                     stops: [0, 90, 100]
+                 }
+             }
+         };
+
+		var chart9 = new ApexCharts(document.querySelector("#myChart9"), options9);
+	    chart9.render();
+		
+		btnMychart9 = `
+		<div id="myChart9"></div>
+		
+		var options9 = {
+	         chart: {
+	             type: 'area', // 라인 영역 차트
+	             height: 350
+	         },
+	         series: [
+	             {
+	                 name: "매출",
+	                 data: [20, 40, 35, 50, 49, 60, 70, 91, 125]
+	             }
+	         ],
+	         xaxis: {
+	             categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+	         },
+	         colors: ["#008FFB"], // 색상 변경 가능
+	         fill: {
+	             type: "gradient",
+	             gradient: {
+	                 shadeIntensity: 1,
+	                 opacityFrom: 0.7,
+	                 opacityTo: 0.3,
+	                 stops: [0, 90, 100]
+	             }
+	         }
+	     };
+	
+		var chart9 = new ApexCharts(document.querySelector("#myChart9"), options9);
+	    chart9.render();
+		`
+		
+		// =============================================================================== myChart10 ===============================================================================
+	 	var options10 = {
+		     chart: {
+		         type: 'radialBar', // 원형 바 차트
+		         height: 350
+		     },
+		     series: [75], // 퍼센트 값
+		     plotOptions: {
+		         radialBar: {
+		             startAngle: -135,
+		             endAngle: 225,
+		             hollow: {
+		                 size: '70%'
+		             },
+		             track: {
+		                 background: "#f2f2f2"
+		             },
+		             dataLabels: {
+		                 name: {
+		                     offsetY: -10,
+		                     color: "#333",
+		                     fontSize: "16px"
+		                 },
+		                 value: {
+		                     color: "#111",
+		                     fontSize: "20px",
+		                     fontWeight: "bold",
+		                     show: true
+		                 }
+		             }
+		         }
+		     },
+		     fill: {
+		         type: "gradient",
+		         gradient: {
+		             shade: "dark",
+		             type: "horizontal",
+		             shadeIntensity: 0.5,
+		             gradientToColors: ["#00BFFF"], // 끝 색상
+		             inverseColors: true,
+		             opacityFrom: 1,
+		             opacityTo: 0.6,
+		             stops: [0, 100]
+		         }
+		     },
+		     stroke: {
+		         lineCap: "round"
+		     },
+		     labels: ["달성률"] // 중앙 텍스트
+		 };
+
+     	var chart10 = new ApexCharts(document.querySelector("#myChart10"), options10);
+     	chart10.render();
+		
+		btnMychart10 = `
+		<div id="myChart10"></div>
+		
+		var options10 = {
+		     chart: {
+		         type: 'radialBar', // 원형 바 차트
+		         height: 350
+		     },
+		     series: [75], // 퍼센트 값
+		     plotOptions: {
+		         radialBar: {
+		             startAngle: -135,
+		             endAngle: 225,
+		             hollow: {
+		                 size: '70%'
+		             },
+		             track: {
+		                 background: "#f2f2f2"
+		             },
+		             dataLabels: {
+		                 name: {
+		                     offsetY: -10,
+		                     color: "#333",
+		                     fontSize: "16px"
+		                 },
+		                 value: {
+		                     color: "#111",
+		                     fontSize: "20px",
+		                     fontWeight: "bold",
+		                     show: true
+		                 }
+		             }
+		         }
+		     },
+		     fill: {
+		         type: "gradient",
+		         gradient: {
+		             shade: "dark",
+		             type: "horizontal",
+		             shadeIntensity: 0.5,
+		             gradientToColors: ["#00BFFF"], // 끝 색상
+		             inverseColors: true,
+		             opacityFrom: 1,
+		             opacityTo: 0.6,
+		             stops: [0, 100]
+		         }
+		     },
+		     stroke: {
+		         lineCap: "round"
+		     },
+		     labels: ["달성률"] // 중앙 텍스트
+		 };
+
+     	var chart10 = new ApexCharts(document.querySelector("#myChart10"), options10);
+     	chart10.render();
+		`
+    </script>
+</body>
+
+</html>

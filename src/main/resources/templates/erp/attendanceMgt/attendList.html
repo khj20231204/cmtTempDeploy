@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}"> 
+	<head>
+		<link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+	    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+	    <link rel="stylesheet"href="https://uicdn.toast.com/chart/latest/toastui-chart.min.css" />
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    
+	    <script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.min.js"></script>
+		<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+		<script src="https://uicdn.toast.com/chart/latest/toastui-chart.min.js"></script>
+	    <title>출퇴근 관리</title>
+
+<style>
+  .tui-datepicker {
+    z-index: 99999 !important;
+    position: absolute !important;
+  }
+</style>
+
+
+</head>
+
+
+<body>
+
+    <div layout:fragment="content">
+		
+		<br>
+<!--		<th:block th:each="soModel : ${soModel}">-->
+<!--			<div th:text="${soModel}"></div>-->
+<!--		</th:block>-->
+<!-- 그리드 top 시작 -->
+	<h3>출퇴근 조회 관리</h3>
+	   	
+	   	
+		<div id="chart-area"></div>
+		
+		
+		<script type="text/javascript">
+		// ✅ 안전한 나누기 함수
+	    const safeDivide = (num, total) => total === 0 ? 0 : (num / total) * 100;
+
+	    // ✅ 차트 생성 함수
+	    function drawChart(passCount, inProgressCount, failCount, totalCount) {
+	      const el = document.getElementById('chart-area');
+
+	      const passRate = safeDivide(passCount, totalCount);
+	      const inProgressRate = safeDivide(inProgressCount, totalCount);
+	      const failRate = safeDivide(failCount, totalCount);
+
+	      const data = {
+	        categories: ['불량율'],
+	        series: [
+	          { name: '합격', data: passRate },
+	          { name: '검사중', data: inProgressRate },
+	          { name: '불합격', data: failRate }
+	        ]
+	      };
+
+	      const options = {
+	        chart: { 
+	          title: '최근 7일 불량율', 
+	          height: 400 
+	        },
+	        series: {
+	          dataLabels: { 
+	            visible: true, 
+	            formatter: (value) => `${value.toFixed(1)}%`
+	          }
+	        }
+	      };
+
+	      toastui.Chart.pieChart({ el, data, options });
+	    }
+
+	    // ✅ 서버에서 데이터 가져오기
+	    async function fetchInspectionData() {
+	      try {
+	        // 예시: GET 방식으로 데이터 요청
+	        const response = await fetch('/fqc/inspection-summary');
+	        const result = await response.json(); // JSON 파싱
+
+	        // 받아온 데이터 예시
+	        const { PASS_COUNT, IN_PROGRESS_COUNT, FAIL_COUNT } = result;
+	        const totalCount = PASS_COUNT + IN_PROGRESS_COUNT + FAIL_COUNT;
+
+	        drawChart(PASS_COUNT, IN_PROGRESS_COUNT, FAIL_COUNT, totalCount);
+	      } catch (error) {
+	        console.error('데이터 불러오기 실패:', error);
+	      }
+	    }
+
+	    // ✅ 실행
+	    fetchInspectionData();
+		</script>
+		
+    	<!-- 전체 한 줄, 버튼 오른쪽 -->
+		<div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+		
+		  <!-- 왼쪽: 검색창 + 날짜 -->
+		  <div style="display: flex; align-items: center; gap: 10px;">
+		    <input type="text" id="searchInput" placeholder="검색어를 입력하세요" class="form-control" style="width: 200px;" />
+		
+		    <label for="startDate">시작일:</label>
+		    <div style="position: relative;">
+		      <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+		        <input type="text" id="startDate" aria-label="Start Date">
+		        <span class="tui-ico-date"></span>
+		      </div> 
+		      <div id="startDateWrapper" style="margin-top: -1px;"></div>
+		    </div>
+		
+		    <label for="endDate">종료일:</label>
+		    <div style="position: relative;">
+		      <div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+		        <input type="text" id="endDate" aria-label="End Date">
+		        <span class="tui-ico-date"></span>
+		      </div>
+		      <div id="endDateWrapper" style="margin-top: -1px;"></div>
+		    </div>
+		
+		    <button id="dateSearchBtn" class="btn btn-primary">검색</button>
+		  </div>
+		
+		  <!-- 오른쪽: 버튼 묶음 (이게 flex item이자 margin-left: auto 적용 대상!) -->
+		  <div class="btn-group-custom" style="margin-left: auto; display: flex; gap: 10px;">
+		    <th:block th:if="${!hasCheckedIn}">
+		      <button type="button" class="btn btn-lg btn-primary" onclick="checkIn()">출근</button>
+		    </th:block>
+		    
+		    <th:block th:if="${hasCheckedIn && !hasCheckedOut}">
+		      <button type="button" class="btn btn-lg btn-primary" onclick="checkOut()">퇴근</button>
+		    </th:block>
+		    
+		    <th:block th:if="${hasCheckedOut && hasCheckedIn}">
+			    <button type="button" class="btn btn-lg btn-primary disabled " onclick="checkOut()">퇴근</button>
+			</th:block>
+		    
+		    <button type="button" 
+		            class="btn btn-lg btn-danger" 
+		            onclick="deleteAttend()" 
+		            sec:authorize="hasAnyRole('ADMIN')">삭제</button>
+		  </div>
+		</div>
+		
+		<!-- TOAST UI DatePicker 스크립트 -->
+		<script src="https://uicdn.toast.com/tui.date-picker/latest/i18n/ko.js"></script>
+		<script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.js"></script>
+		<script type="text/javascript">
+		
+		const oneMonthAgo = new Date();
+		  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+		  // 시작일 DatePicker
+		  const startPicker = new tui.DatePicker('#startDateWrapper', {
+			language: 'ko',  
+		    date: oneMonthAgo,
+		    input: {
+		      element: '#startDate',
+		      format: 'yyyy-MM-dd'
+		    }
+		  });
+		
+		  // 종료일 DatePicker
+		  const endPicker = new tui.DatePicker('#endDateWrapper', {
+			language: 'ko',  
+		    date: new Date(),
+		    input: {
+		      element: '#endDate',
+		      format: 'yyyy-MM-dd'
+		    }
+		  });
+		  
+		</script>
+		
+		<br>
+		
+		<!-- ✅ 오버레이 + 스피너 통합 -->
+		<div id="loadingOverlay" style="display: none;">
+		  <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+		    <span class="visually-hidden">Loading...</span>
+		  </div>
+		</div>
+				
+		
+    	<div id="gridTop"></div>
+    	
+    
+	    <script th:inline="javascript">
+	    const grid = new tui.Grid({
+            el: document.getElementById('gridTop'),
+            data: /*[[${attendList}]]*/ [],
+            rowHeaders: ['checkbox'],
+            scrollX: false,
+            scrollY: false,
+            pageOptions: {
+    	        useClient: true,  // 서버 사이드 페이징 활성화
+    	        perPage: 20
+    	    },
+            columns: [
+            	{ 
+                  header: '출결번호', 
+              	  name: 'atdNo', 
+              	  sortable: true, 
+              	  filter: 'text', 
+              	  width: 150,
+              	  align: "center" 
+              	},
+            	{ 
+                  header: '사원번호', 
+            	  name: 'empNo', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 150,
+            	  align: "center" 
+            	},
+            	{ 
+                  header: '사원이름', 
+            	  name: 'empName', 
+            	  sortable: true, 
+            	  filter: 'text', 
+            	  width: 150,
+            	  align: "center" 
+            	},
+            	{ 
+              	  header: '부서', 
+              	  name: 'deptName', 
+              	  sortable: true, 
+              	  filter: 'text',
+              	  width: 150,
+              	  align: "center",
+            		formatter: function({ row }) {
+	           		  return row.deptName;
+	           		}
+              	},
+            	{ 
+            	  header: '출근일자', 
+            	  name: 'atdDate', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 300,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+	
+	           		    const year = date.getFullYear();
+	           		    const month = String(date.getMonth() + 1).padStart(2, '0');
+	           		    const day = String(date.getDate()).padStart(2, '0');
+	           		    const hours = String(date.getHours()).padStart(2, '0');
+	           		    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${year}년 ${month}월 ${day}일 ${hours}시 ${minutes}분`;
+	           		}
+           		},
+            	{ 
+            	  header: '퇴근일자', 
+            	  name: 'atdLeave', 
+            	  sortable: true, 
+            	  filter: 'text',
+            	  width: 300,
+           		  align: "center",
+	           		formatter: function({ value }) {
+	           		    if (!value) return ''; // null, undefined, '', 0 모두 걸러짐
+	
+	           		    const date = new Date(value);
+	           		    if (isNaN(date)) return ''; // Invalid Date도 방지
+	
+	           		    const year = date.getFullYear();
+	           		    const month = String(date.getMonth() + 1).padStart(2, '0');
+	           		    const day = String(date.getDate()).padStart(2, '0');
+	           		    const hours = String(date.getHours()).padStart(2, '0');
+	           		    const minutes = String(date.getMinutes()).padStart(2, '0');
+	           		    
+	           		    return `${year}년 ${month}월 ${day}일 ${hours}시 ${minutes}분`;
+	           		}
+           		},
+            	{ 
+           	      header: '출결유형', 
+           		  name: 'statusLink', 
+           		  sortable: true, 
+           		  filter: 'text',
+           		  align: "center",
+           		  width: 150,
+	           		formatter: function({ row }) {
+	           		  return row.statusLink;
+	           		}
+           		},
+            	{ 
+           	      header: '출결상태', 
+           	      name: 'typeLink', 
+           	      sortable: true, 
+           	      filter: 'text',
+           	      align: "center",
+           	      width: 150,
+	           	   formatter: function({ row }) {
+	           	     return row.typeLink;
+	           	   } 
+            	},
+            	{ 
+           	      header: '비고', 
+           	      name: 'atdRemarks', 
+           	      sortable: true, 
+           	      filter: 'text',
+           	      align: "center" 
+           	    }
+            ],
+            
+
+              
+          });
+	    
+	    
+	    // 행 아무곳이나 클릭하면 체크박스 활성화
+	    grid.on('click', ev => {
+	    	  const { rowKey, columnName } = ev;
+
+	    	  if (columnName === '_checked') return;
+	    	  const isChecked = grid.getCheckedRowKeys().includes(rowKey);
+	    	  if (!isChecked) {
+	    	    grid.check(rowKey);
+	    	  } else {
+	    	    grid.uncheck(rowKey);
+	    	  }
+	    	});
+	    
+	    
+
+	    </script>
+	    <!-- 그리드 끝 -->
+	    <script th:inline="javascript">
+	    
+	    async function checkIn() {
+	    	  // 사용자에게 출근 확인 알림 표시
+	    	  const result = await Swal.fire({
+	    	    title: "출근 하시겠습니까?",
+	    	    showDenyButton: true,
+	    	    confirmButtonText: "출근",
+	    	    denyButtonText: "아니요"
+	    	  });
+	    	  if (result.isDenied) {
+	    		  Swal.fire({
+	    			  icon: "error",
+		    		  title: "출근 처리에 실패했습니다.",
+		    		});
+	    		  return;
+	    		  }
+	    	  // 출근 API 요청
+	    	  try {
+				  // ✅ 로딩 시작
+				  spinner.style.display = 'flex';
+				
+				  const response = await fetch('/attends/check-in', {
+				    method: 'POST',
+				    headers: {
+				      'Content-Type': 'application/json'
+				    },
+				    body: JSON.stringify({})
+				  });
+				  // ✅ 로딩 종료
+				  spinner.style.display = 'none';
+				
+				  if (!response.ok) {
+				    await Swal.fire({
+				      icon: "error",
+				      title: "출근 처리 중 서버 오류가 <br>발생했습니다",
+				    });
+				    throw new Error("출근 처리 중 서버 오류");
+				  }
+				
+				  await Swal.fire({
+				    title: "출근이 처리되었습니다",
+				    icon: "success",
+				  });
+				
+				  location.reload();
+				
+				} catch (error) {
+				  console.error('Error:', error);
+				  await Swal.fire({
+				    icon: "error",
+				    title: "근무 일정 먼저 등록 바랍니다",
+				  });
+				
+				} 
+		    }
+	    
+	    	async function checkOut() {
+	    	  // 사용자에게 퇴근 확인 알림 표시
+	    	  const result = await Swal.fire({
+	    	    title: "퇴근 하시겠습니까?",
+	    	    showDenyButton: true,
+	    	    confirmButtonText: "퇴근",
+	    	    denyButtonText: "아니요"
+	    	  });
+
+	    	  if (result.isDenied) {
+	    	    await Swal.fire({
+	    	      icon: "error",
+	    	      title: "퇴근이 취소되었습니다.",
+	    	    });
+	    	    return;
+	    	  }
+
+	    	  // 퇴근 API 요청
+	    	  try {
+	    	    const response = await fetch('/attends/check-out', {
+	    	      method: 'POST',
+	    	      headers: {
+	    	        'Content-Type': 'application/json'
+	    	      },
+	    	      body: JSON.stringify({atdType: "ATT005"})
+	    	    });
+
+	    	    if (!response.ok) {
+	    	      await Swal.fire({
+	    	        icon: "error",
+	    	        title: "퇴근 처리 중 서버 오류가 발생했습니다",
+	    	      });
+	    	      throw new Error("퇴근 처리 중 서버 오류");
+	    	    }
+
+	    	    await Swal.fire({
+	    	      title: "퇴근이 처리되었습니다",
+	    	      icon: "success",
+	    	    });
+
+	    	    location.reload();
+
+	    	  } catch (error) {
+	    	    console.error('Error:', error);
+	    	    await Swal.fire({
+	    	      icon: "error",
+	    	      title: "퇴근 처리 중 서버 오류가 발생했습니다",
+	    	    });
+	    	  }
+	    	}
+	    	
+	    	
+	    	async function deleteAttend() {
+	    		  const checkedRows = grid.getCheckedRows();
+	    		  const ids = checkedRows.map(row => row.atdNo);
+
+	    		  if (ids.length === 0) {
+	    		    await Swal.fire({
+	    		      icon: "warning",
+	    		      title: "삭제할 데이터를 선택해주세요."
+	    		    });
+	    		    return;
+	    		  }
+
+	    		  const result = await Swal.fire({
+	    		    title: "정말 삭제하시겠습니까?",
+	    		    text: `총 ${ids.length}건의 데이터를 삭제합니다.`,
+	    		    icon: "warning",
+	    		    showDenyButton: true,
+	    		    confirmButtonText: "삭제",
+	    		    denyButtonText: "취소",
+	    		  });
+
+	    		  if (result.isDenied) {
+	    		    await Swal.fire({
+	    		      icon: "error",
+	    		      title: "삭제가 취소되었습니다.",
+	    		    });
+	    		    return;
+	    		  }
+
+	    		  // 삭제 API 요청
+	    		  try {
+	    		    const response = await fetch('/attends/delete', {
+	    		      method: 'POST',
+	    		      headers: {
+	    		        'Content-Type': 'application/json'
+	    		      },
+	    		      body: JSON.stringify({ ids: ids }) // 필요 시 선택한 ID 전달
+	    		    });
+
+	    		    if (!response.ok) {
+	    		      await Swal.fire({
+	    		        icon: "error",
+	    		        title: "삭제 처리 중 서버 오류가 발생했습니다",
+	    		      });
+	    		      throw new Error("삭제 처리 중 서버 오류");
+	    		    }
+
+	    		    await Swal.fire({
+	    		      title: "삭제가 완료되었습니다",
+	    		      icon: "success",
+	    		    });
+
+	    		    location.reload();
+
+	    		  } catch (error) {
+	    		    console.error('Error:', error);
+	    		    await Swal.fire({
+	    		      icon: "error",
+	    		      title: "삭제 처리 중 예외가 발생했습니다",
+	    		    });
+	    		  }
+	    		}
+	    
+
+	    	
+	    	
+	    	// grid 데이터 원본 저장
+	    	const originalData = grid.getData();
+
+	    	document.getElementById('searchInput').addEventListener('input', function (e) {
+	    	  const keyword = e.target.value.toLowerCase();
+
+	    	  // 원본 데이터를 기준으로 필터링
+	    	  const filtered = originalData.filter(row => {
+	    	    return Object.values(row).some(val => {
+	    	      if (val == null) return false;
+	    	      return String(val).toLowerCase().includes(keyword);
+	    	    });
+	    	  });
+
+	    	  // 필터링된 데이터로 그리드 업데이트
+	    	  grid.resetData(filtered);
+	    	});
+	    	
+	    	
+	    	function applyFilter() {
+	    		  const keyword = document.getElementById('searchInput').value.toLowerCase();
+	    		  const start = document.getElementById('startDate').value;
+	    		  const end = document.getElementById('endDate').value;
+
+	    		  let filtered = originalData;
+
+	    		  if (start && end) {
+	    		    const startDate = new Date(start);
+	    		    const endDate = new Date(end);
+	    		    endDate.setHours(23, 59, 59, 999);
+
+	    		    filtered = filtered.filter(row => {
+	    		      const atdDate = new Date(row.atdDate);
+	    		      return atdDate >= startDate && atdDate <= endDate;
+	    		    });
+	    		  }
+
+	    		  if (keyword) {
+	    		    filtered = filtered.filter(row =>
+	    		      Object.values(row).some(val =>
+	    		        val != null && String(val).toLowerCase().includes(keyword)
+	    		      )
+	    		    );
+	    		  }
+
+	    		  grid.resetData(filtered);
+	    		}
+
+	    		document.getElementById('dateSearchBtn').addEventListener('click', applyFilter);
+	    		document.getElementById('searchInput').addEventListener('input', applyFilter);
+	    	
+		</script> 
+		
+		
+	
+		
+		
+		
+		
+    </div>
+   	
+	<th:block layout:fragment="script">
+	    
+	</th:block>
+</body>
+
+</html>

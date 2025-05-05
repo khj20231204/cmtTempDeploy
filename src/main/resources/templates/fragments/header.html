@@ -1,0 +1,15 @@
+<div th:fragment="header">
+    <!-- 헤더에서는 기본 메타 정보나 아이콘만 포함하고, 주요 CSS는 레이아웃에서 처리 -->
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <!-- 페이지 제목/설명 영역 -->
+        <div>
+            <h3 th:if="${pageTitle}" th:text="${pageTitle}">페이지 제목</h3>
+            <p th:if="${pageDescription}" class="text-subtitle text-muted" th:text="${pageDescription}">페이지 설명</p>
+        </div>
+        
+        <!-- 헤더 우측 영역 (선택적 액션 버튼 등) -->
+        <div class="d-flex justify-content-end">
+            <div th:if="${headerActions}" th:replace="${headerActions}"></div>
+        </div>
+    </div>
+</div>

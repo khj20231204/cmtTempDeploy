@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>LOGIN PAGE</h1>
+	
+	<form action="login" method="post" onsubmit="return validityCheck()">
+	    <input type="text" name="empId" id="empId" placeholder="empId" /><br/>
+	    <input type="password" name="empPassword" id="pwd" placeholder="Password" /><br/>
+		<br>
+	    <button type="submit">로그인</button>
+	</form>
+	<br>
+	<br>
+	<a href="joinForm">회원가입</a>
+	
+<script>
+	function validityCheck(){
+		
+		let username = document.getElementById("username").value;
+		let pwd = document.getElementById("pwd").value;
+		
+		if(username.trim() === "" || pwd.trim() === "")
+		{
+			alert("입력");
+			return false;
+		}
+	}	
+</script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+	<head>
+		<!-- date-picker -->
+		<link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.css">
+		<script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.min.js"></script>
+			
+		<!-- toast 부트스트랩 기본 -->
+		<link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.css">
+		<script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.min.js"></script>
+	
+	    <title>수주 등록</title>
+    
+    <title>CMT</title>
+	
+</head>
+<body>
+	
+    <div layout:fragment="content">
+   		<div id="gridTop"></div>
+		
+		<form id="soEditForm" method="get" action="/sales/soeditexe">
+			
+			<input type="hidden" id="gridDataHidden" name="gridDataHidden">
+			
+			<div style="text-align: center;">
+				<button type="button" class="btn btn-primary" onclick="submitExe()">수정</button>			
+				<button type="button" class="btn btn-primary" onclick="window.close()">취소</button>
+			</div>
+		</form>
+    </div>
+   	
+	<!-- 그리드 시작-->
+    <script th:inline="javascript">
+	
+	let grid; //gird에서 데이터를 받아오기 위해서 전역으로 선언
+				
+	document.addEventListener("DOMContentLoaded", function () {
+		
+		//모든 컬럼 함깨 표시
+		let soEditorSelected = /*[[${soEditorSelected}]]*/ [];
+		let cltList = /*[[${cltList}]]*/ [];
+		let empList = /*[[${empList}]]*/ [];
+		let productList = /*[[${productList}]]*/ [];
+		let soStatusList = /*[[${soStatusList}]]*/ [];
+		
+		//2개의 컬럼으로 label과 value를 맞춘다
+		let cltListSelected = cltList.map(item => ({label: item.cltCode, value: item.cltName+'('+item.cltCode+')'}));
+		let empListSelected = empList.map(item => ({label: item.empNo, value: item.empName+'('+ item.empNo + ')'}));
+		let productListSelected = productList.map(item => ({label: item.pdtCode, value: item.pdtName+'('+item.pdtCode+')'}))
+		let soStatusListSelected = soStatusList.map(item => ({label: item.statusCode, value: item.statusName+'('+item.statusCode+')'}))
+		
+		/*
+		console.log(cltListSelected)
+		console.log(empListSelected);
+		console.log(productListSelected)
+		console.log(soStatusListSelected);
+		console.log(soEditorSelected);
+		*/
+		
+		/*
+		console.log(cltList);
+		console.log(empList);
+		console.log(productList);
+		console.log(soStatusList);
+		*/
+		
+        if (!grid) { // 중복 생성 방지
+            grid = new tui.Grid({
+                el: document.getElementById('gridTop'),
+				data : soEditorSelected,
+                scrollX: true,
+                scrollY: true,
+				width: 1300, 
+				bodyHeight: 550, 
+				columns: [
+					{
+						header: '수주번호',
+						name: 'soNo',
+						sortable: true, 
+						filter: 'text',
+						width: 100,
+						align: 'center'
+		            },
+		            {
+		                header: '수주코드',
+		                name: 'soCode',
+						sortable: true, 
+						filter: 'text',
+						width: 140,
+						align: 'center' 
+		            },
+					{
+		                header: '수주일자',
+		                name: 'soDate',
+						filter: 'text',
+						width: 140,
+						align: 'center',
+						editor: {
+				           type: 'datePicker',
+				           options: {
+				             format: 'yyyy-MM-dd',  
+				             language: 'ko'
+				           }
+				         }
+		            },
+					{
+		                header: '발주일자',
+		                name: 'shipDate',
+						filter: 'text',
+						width: 140,
+						align: 'center',
+						editor: {  
+			                type: 'datePicker', 
+			                options: {  
+			                    format: 'yyyy-MM-dd',  
+								language: 'ko'
+			                }  
+			            }
+		            },
+		            {
+		                header: '사원번호',
+		                name: 'empNo',
+						width: 130,
+						align: 'center',
+						editor: {
+							type: 'select',
+							options: {
+								listItems: empListSelected
+							}
+						},
+						formatter: ({ value }) => {
+					    	const emp = empListSelected.find(item => item.value === value);
+					    	return emp ? emp.label : value;
+					    }
+		            },
+					{
+		                header: '재품코드',
+		                name: 'pdtCode', //SalseOrder의 entity에 있는 pdtCode
+						width: 210,
+						align: 'center',
+						editor: {
+							type: 'select',
+							options: {
+								listItems: productListSelected //Products의 entity에 있는 pdtCode와 pdtName
+							}
+						},
+						formatter: ({ value }) => {
+					    	const pdt = productListSelected.find(item => item.value === value);
+					    	return pdt ? pdt.label : value; 
+					    }
+		            },
+					{
+		                header: '거래처코드',
+		                name: 'cltCode',
+						width: 210,
+						align: 'center',
+						editor: {
+							type: 'select',
+							options: {
+								listItems: cltListSelected
+							}
+						},
+						formatter: ({ value }) => {
+					    	const clt = cltListSelected.find(item => item.value === value);
+					    	return clt ? clt.label : value; 
+					    }
+		            },
+		            {
+		                header: '수량',
+		                name: 'soQty',
+						sortable: true, 
+						filter: 'text',
+						width: 80,
+						align: 'center',
+						editor: 'text'
+		            },
+		            {
+		                header: '단가',
+		                name: 'pdtPrice',
+						sortable: true, 
+						filter: 'text',
+						width: 120,
+						align: 'center',
+						editor: 'text'
+		            },
+					{
+						header: '진행상태',
+						name: 'soStatus', //salesOrder의 entity에 있는 soStatus
+						width: 200,
+						align: 'center',
+						editor: {
+							type: 'select',
+							options: {
+								listItems: soStatusListSelected //SalesOrderStatus의 배열 값 
+							}
+						},
+						formatter: ({ value }) => {
+					    	const stu = soStatusListSelected.find(item => item.value === value);
+					    	return stu ? stu.label : value; 
+					    }
+		            },
+                ],
+				autoEdit: true,
+				editingEvent: 'click' 
+            });
+			
+        }//if (!grid) 
+
+	}); //document.addEventListener("DOMContentLoaded", function () {
+	
+	
+	function submitExe(){
+		
+		let editGridData = JSON.stringify(grid.getData());
+		document.getElementById("gridDataHidden").value = editGridData;
+		
+		document.getElementById("soEditForm").submit();
+	}	
+	
+    </script>
+	<!-- 그리드 끝-->
+	
+	<th:block layout:fragment="script">
+		<script src="https://code.jquery.com/jquery.min.js"></script>
+	    <script>
+    	
+	    </script>
+	</th:block>
+</body>
+
+</html>
+
+

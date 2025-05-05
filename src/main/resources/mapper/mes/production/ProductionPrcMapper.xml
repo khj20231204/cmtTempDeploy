@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ProductMapper.java 경로로 클래스명 ProductMapper까지 입력 --> 
+<mapper namespace="com.example.cmtProject.mapper.mes.production.ProductionPrcMapper">
+	
+	<select id="selectWoStandByList" resultType="com.example.cmtProject.dto.mes.production.WorkOrderDTO">
+		SELECT  
+			PDT_NAME
+			,WO_END_DATE
+			,STATUS
+			,COMMENTS
+			,USE_YN
+			,WORK_ORDER_NO
+			,WORK_END_DATE
+			,DUE_DATE
+			,ORDER_DATE
+			,WORK_ORDER_CODE
+			,WORK_START_DATE
+			,EMP_NAME
+			,WO_NO
+			,WO_CODE
+			,MP_NO
+			,PDT_CODE
+			,PRC_CODE
+			,LINE_CODE
+			,EMP_ID
+			,WO_DATE
+			,WO_QTY
+			,WO_START_DATE
+			,ORDER_QTY
+		FROM WORK_ORDER 
+	   WHERE WO_STATUS_CODE = 'PS'
+	</select>
+	
+	<select id="selectWoCodeList" resultType="com.example.cmtProject.dto.mes.production.WorkOrderDTO">
+		SELECT  
+			PDT_NAME
+			,WO_END_DATE
+			,STATUS
+			,COMMENTS
+			,USE_YN
+			,WORK_ORDER_NO
+			,WORK_END_DATE
+			,DUE_DATE
+			,ORDER_DATE
+			,WORK_ORDER_CODE
+			,WORK_START_DATE
+			,E.EMP_NAME
+			,WO_NO
+			,WO_CODE
+			,MP_NO
+			,PDT_CODE
+			,PRC_CODE
+			,LINE_CODE
+			,W.EMP_ID AS EMP_ID
+			,WO_DATE
+			,WO_QTY
+			,WO_START_DATE
+			,ORDER_QTY
+		FROM WORK_ORDER W 
+        JOIN EMPLOYEES E
+          ON W.EMP_ID = E.EMP_ID
+	   WHERE W.WO_CODE = #{data}
+	</select>
+	
+	<select id="selectPdtCodeList" resultType="com.example.cmtProject.dto.mes.standardInfoMgt.BomInfoDTO">
+		SELECT
+			ROWNUM AS IDX,
+		    LEVEL AS BOM_LEVEL,
+		    CHILD_ITEM_CODE,
+		    PARENT_PDT_CODE,
+		    ITEM_TYPE,
+		    BOM_PRC_TYPE,
+		    BOM_QTY,
+		    BOM_UNIT,
+		    LTRIM(SYS_CONNECT_BY_PATH(CHILD_ITEM_CODE, ' ← '), ' ← ') AS PATH
+		FROM BOM
+		WHERE USE_YN = 'Y'
+		START WITH CHILD_ITEM_CODE = #{data}
+		CONNECT BY PRIOR PARENT_PDT_CODE = CHILD_ITEM_CODE
+		ORDER SIBLINGS BY CHILD_ITEM_CODE
+	</select>
+	
+	<select id="selectPdtCodeArray" resultType="com.example.cmtProject.dto.mes.production.LotCodeDTO">
+		SELECT DISTINCT CODE, BOM_PRC_TYPE
+		FROM (
+		    SELECT PARENT_PDT_CODE AS CODE, BOM_PRC_TYPE
+		    FROM BOM
+		    START WITH PARENT_PDT_CODE = #{pdtCode}
+		    CONNECT BY PRIOR CHILD_ITEM_CODE = PARENT_PDT_CODE
+		
+		    UNION
+		
+		    SELECT CHILD_ITEM_CODE AS CODE, BOM_PRC_TYPE
+		    FROM BOM
+		    START WITH PARENT_PDT_CODE = #{pdtCode}
+		    CONNECT BY PRIOR CHILD_ITEM_CODE = PARENT_PDT_CODE
+		)ORDER BY CODE
+	</select>
+	
+	<select id="getPrcType" resultType="String">
+		SELECT PRC_TYPE_CODE FROM PRODUCTS WHERE PDT_CODE = #{pdtCode}
+	</select>
+	
+	<select id="selectChildPdtCodeList" resultType="String">
+		SELECT 
+    		DISTINCT PARENT_PDT_CODE
+		FROM BOM
+		WHERE USE_YN = 'Y'
+		START WITH CHILD_ITEM_CODE = #{pdtCode}
+		CONNECT BY PRIOR PARENT_PDT_CODE = CHILD_ITEM_CODE
+	</select>
+	
+	<select id="selectParentdPdtCodeList" resultType="String">
+		SELECT 
+		    DISTINCT CHILD_ITEM_CODE
+		FROM BOM
+		WHERE USE_YN = 'Y'
+		START WITH CHILD_ITEM_CODE = #{pdtCode}
+		CONNECT BY PRIOR PARENT_PDT_CODE = CHILD_ITEM_CODE
+	</select>
+	
+	<update id="updateWoStatus">
+		UPDATE WORK_ORDER SET WO_STATUS_CODE = 'RN' WHERE WO_CODE = #{woCode}
+	</update>
+	
+	<select id="selectProductInfo" resultType="com.example.cmtProject.dto.mes.standardInfoMgt.ProductTotalDTO">
+		SELECT * 
+		FROM PRODUCTS P
+		LEFT JOIN MATERIAL_TYPE M
+		  ON P.MTL_TYPE_CODE = M.MTL_TYPE_CODE
+		LEFT JOIN WEIGHT_UNIT W
+		  ON P.WT_TYPE_CODE = W.WT_TYPE_CODE
+		LEFT JOIN LENGTH_UNIT L
+		  ON P.LT_TYPE_CODE = L.LT_TYPE_CODE
+		LEFT JOIN PRODUCT_TYPE P2
+		  ON P.PDT_TYPE = P2.PDT_TYPE_CODE
+	   WHERE P.PDT_USEYN = 'Y' AND P.PDT_CODE = #{pdtCode}
+	</select>
+	
+	<select id="selectParentPdtCode" resultType="String">
+	   SELECT
+			  PARENT_PDT_CODE
+		 FROM BOM
+		WHERE USE_YN = 'Y'
+		START WITH CHILD_ITEM_CODE = #{pdtCode}
+	  CONNECT BY PRIOR PARENT_PDT_CODE = CHILD_ITEM_CODE
+		ORDER SIBLINGS BY CHILD_ITEM_CODE
+	</select>
+	
+</mapper>

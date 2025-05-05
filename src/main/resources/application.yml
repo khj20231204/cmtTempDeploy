@@ -1,0 +1,68 @@
+
+server:
+  port: 8080  # 내장 톰캣 서버 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# Spring 설정
+spring:
+
+  config:
+    import: optional:aws-parameterstore:/myapp/
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver   
+    url: ${db.url}
+    username: ${db.username}
+    password: ${db.password}
+
+  jpa:
+    hibernate:
+      ddl-auto: update #create update none
+      # naming:
+        # physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    show-sql: true
+
+  security:
+    user:
+      name: admin
+      password: 1234
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
+
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2 # 실제 리전
+      # credentials:
+      #  profile-name: default # 또는 IAM 역할로 설정
+
+# MyBatis 설정
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true # 스네이크 케이스(user_id) → 카멜 케이스(userId) 자동 변환
+  type-aliases-package: com.example.cmtProject.entity # MyBatis Type Alias 설정 #mapper-locations: classpath:mapper/**/**.xml # Mybatis 매퍼 파일 경로
+  mapper-locations: classpath:mapper/**/**.xml
+  type-handlers-package: com.example.cmtProject.comm
+
+# TRACE 레벨의 로그를 출력
+logging:
+  level:
+    root: INFO
+    org.mybatis: INFO
+    com.example: INFO
+
+    org.springframework.cloud: DEBUG
+    org.springframework.boot.context.config: DEBUG
+
+#uploadBaseLocation: D:/profile
+uploadBaseLocation: /usr/local/cmt
+ProfileImgLocation: /images/profile

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ProductMapper.java 경로로 클래스명 ProductMapper까지 입력 --> 
+<mapper namespace="com.example.cmtProject.mapper.mes.production.LotMapper">
+	<!-- LOTNO의 최대값 -->
+	<select id="getLotNo" resultType="Long">
+		SELECT NVL(MAX(lot_no), 0) FROM LOT
+	</select>
+	
+	<select id="getLotOrderPrcType" resultType="com.example.cmtProject.dto.mes.production.LotOrderDTO">
+		SELECT
+			SUBSTR(CHILD_LOT_CODE, 14, 2) AS PRC_TYPE,
+			NVL(MAX(TO_NUMBER(SUBSTR(CHILD_LOT_CODE, 17))),0) AS MAX_SEQ
+		FROM LOT
+		WHERE CHILD_LOT_CODE LIKE 'LOT-' || #{todayStr} || '-%'
+		  AND SUBSTR(CHILD_LOT_CODE, 14, 2) = #{type}
+		GROUP BY SUBSTR(CHILD_LOT_CODE, 14, 2)
+	</select>
+	
+	<insert id="insertLot" parameterType="com.example.cmtProject.dto.mes.production.LotOriginDTO">
+	    INSERT INTO LOT (
+	        LOT_NO
+			,PARENT_LOT_CODE
+			,CHILD_LOT_CODE
+			,PARENT_PDT_CODE
+			,CHILD_PDT_CODE
+			,CREATE_DATE
+			,END_DATE
+			,PRC_TYPE
+			,BOM_QTY
+			,BOM_UNIT
+			,LINE_CODE
+			,EQP_CODE
+			,WO_CODE
+			,WO_QTY
+			,START_TIME
+			,FINISH_TIME
+			,WO_STATUS_NO
+			,USE_YN
+	    ) VALUES (
+	        #{lotNo},
+	        #{parentLotCode},
+	        #{childLotCode},
+	        #{parentPdtCode},  <!-- 주의: 여기가 PDT_CODE -->
+	        #{childPdtCode},
+	        #{createDate, jdbcType=DATE},
+	        #{endDate, jdbcType=DATE},
+	        #{prcType},
+	        #{bomQty, jdbcType=VARCHAR},
+	        #{bomUnit},
+	        #{lineCode},
+	        #{eqpCode},
+	        #{woCode},
+	        #{woQty, jdbcType=VARCHAR},
+	        #{startTime},
+	        #{finishTime},
+	        #{woStatusNo},
+	        #{useYn}
+	    )
+	</insert>
+	
+	<!-- BOM 테이블에서 PATH가져오기 -->
+	<select id="selectStructurePath" resultType="com.example.cmtProject.dto.mes.production.LotStructurePathDTO">
+		SELECT
+		    LEVEL AS BOM_LEVEL,
+		    CHILD_ITEM_CODE,
+		    PARENT_PDT_CODE,
+		    ITEM_TYPE,
+		    BOM_PRC_TYPE,
+		    BOM_QTY,
+		    BOM_UNIT,
+		    LTRIM(SYS_CONNECT_BY_PATH(CHILD_ITEM_CODE, ' ← '), ' ← ') AS PATH
+		FROM BOM
+		WHERE USE_YN = 'Y'
+		START WITH CHILD_ITEM_CODE = #{pdtCode}
+		CONNECT BY PRIOR PARENT_PDT_CODE = CHILD_ITEM_CODE
+		ORDER SIBLINGS BY CHILD_ITEM_CODE
+	</select>
+	
+	<!-- LOT 테이블 origin 가져오기 -->
+	<select id="selectLotOrigin" resultType="com.example.cmtProject.dto.mes.production.LotOriginDTO">
+		SELECT 
+			ROWNUM AS NUM
+			,LOT_NO
+			,CHILD_LOT_CODE
+			,PARENT_LOT_CODE
+			,CHILD_PDT_CODE
+			,PARENT_PDT_CODE
+			,CREATE_DATE
+			,END_DATE
+			,PRC_TYPE
+			,BOM_QTY
+			,BOM_UNIT
+			,LINE_CODE
+			,EQP_CODE
+			,WO_CODE
+			,WO_QTY
+			,START_TIME
+			,FINISH_TIME
+			,WO_STATUS_NO
+			,USE_YN
+		FROM LOT
+		WHERE USE_YN = 'Y'
+		AND WO_CODE = #{woCode}
+		ORDER BY LOT_NO
+	</select>
+	
+	<!-- 작업 완료 버튼 클릭시 LOT 업데이트 -->
+	<update id="updateLotPresentPRC" parameterType="com.example.cmtProject.dto.mes.production.LotOriginDTO">
+		UPDATE 
+			LOT
+		SET 
+			END_DATE = #{endDate, jdbcType=DATE},
+			FINISH_TIME = #{finishTime},
+		    WO_STATUS_NO = #{woStatusNo},
+		    BOM_QTY = #{bomQty}
+		WHERE LOT_NO = #{lotNo} AND WO_CODE = #{woCode}
+	</update>
+	
+	<!-- 작업 완료 버튼 클릭시 이후 공정 startTime 입력 -->
+	<update id="updateLotNextPRC">
+		UPDATE 
+			LOT
+		SET
+			START_TIME = #{startTime}
+		WHERE LOT_NO = #{nextLotNo}
+	</update>
+	
+	<!-- 완제품 작업 완료시 작업 지시서 CP로 업데이트 -->
+	<update id="updateWOtoCP">
+		UPDATE 
+			WORK_ORDER 
+		SET 
+			WO_STATUS_CODE = 'CP' 
+		WHERE WO_CODE = #{woCode} 
+	</update>
+	
+	<!-- SAVE_PRC에 데이터가 있는지 없는지 확인 -->
+	<select id="selectCheckSavePRC" resultType="Integer">
+		SELECT COUNT(WO_CODE) FROM SAVE_PRC
+	</select>
+	
+	<!-- SAVE_PRC에서 데이터 가져오기 -->
+	<select id="selectSavePRC" resultType="com.example.cmtProject.dto.mes.production.SavePRCDTO">
+		SELECT 
+			WO_CODE,
+			PDT_CODE,
+			PARENT_PDT_CODE
+		FROM SAVE_PRC
+	</select>
+	
+	<!-- QI가 있는지 없는지 확인 -->
+	<!-- <select id="selectCheckQI" resultType="String">
+		SELECT COUNT(WO_STATUS_NO) FROM LOT WHERE WO_STATUS_NO = 'QI' AND WO_CODE = 'MSC005' 
+	</select> -->
+	
+	<!-- 현재 작업 중인 ROWNUM -->
+	<select id="selectRNRowNum" resultType="String">
+		SELECT 
+	MAX(ROWNUM) AS NUM
+	      FROM (SELECT 
+	    	    ROWNUM 
+	       FROM LOT 
+		  WHERE WO_STATUS_NO = 'RN' 
+		    AND WO_CODE = #{nowWoCode})
+	</select>
+	
+	<!-- 작업 중이 아닐 때 전체 데이터 ROWNUM의 MAX 값 -->
+	<select id="selectRnRowNumMax" resultType="Integer">
+		SELECT MAX(RNUM) AS NUM
+		  FROM (SELECT 
+				ROWNUM AS RNUM
+		  FROM LOT 
+		 WHERE WO_CODE = #{woCode})
+	</select>
+	
+	<!-- save_prc테이블에 데이터 넣기 -->
+	<insert id="insertSavePrc" parameterType="com.example.cmtProject.dto.mes.production.SavePRCDTO">
+		INSERT INTO SAVE_PRC(
+		       WO_CODE
+		       ,PDT_CODE
+		       ,PARENT_PDT_CODE)
+		VALUES(
+		       #{woCode}
+		       ,#{pdtCode}
+		       ,#{parentPdtCode}
+		)
+	</insert>
+	
+	<!-- save_prc테이블에 데이터 삭제 -->
+	<delete id="deleteSavePrc">
+		DELETE SAVE_PRC
+	</delete>
+	
+	<!-- 반제품 수량 받기 -->
+	<select id="getBomQty" resultType="com.example.cmtProject.dto.mes.production.SemiFinalBomQty">
+		SELECT MS_CODE
+				,PARENT_PDT_CODE
+				,MS_QTY
+		  FROM MFG_SCHEDULES_DETAIL 
+		 WHERE MS_CODE IN (
+		SELECT MS_CODE 
+		  FROM WORK_ORDER 
+		 WHERE WO_CODE = #{woCode})
+	</select>
+	
+	<!-- IPI테이블에서 IPI_NO 가져오기 -->
+	<select id="getIpiNo">
+		SELECT MAX(IPI_NO) FROM IPI
+	</select>
+	
+	<!-- 작업지시서 종료일 -->
+	<update id="updateWoEndDate">
+		UPDATE WORK_ORDER 
+		   SET WO_END_DATE = #{today, jdbcType=DATE}
+		 WHERE WO_CODE = #{woCode}
+	</update>
+	
+	<!-- IPI테이블에 입력 -->
+	<insert id="insertIpi">
+		INSERT INTO IPI (
+		    LOT_NO
+		    ,CHILD_LOT_CODE
+		    ,IPI_INSPECTION_RESULT
+		    ,IPI_INSPECTION_STATUS
+		   	,PDT_CODE
+		    ,PDT_NAME
+		    ,WO_CODE
+		    ,WO_QTY
+		    ,PDT_TYPE
+		    ,UNIT_QTY
+		    ,IPI_VISIABLE
+		    ,IPI_CODE
+		)
+		SELECT
+			#{lotNo}
+		    ,#{childLotCode}
+		    ,'예정'
+		    ,'검사시작'
+		    ,#{pdtCode}
+		    ,#{pdtName}
+		    ,#{woCode}
+		    ,#{woQty}
+		    ,#{pdtType}
+		    ,'개'
+		    ,'Y'
+		    ,#{ipiCode}
+		FROM DUAL
+	</insert>
+	
+	<!-- MFG_SCHEDULES 상태 업데이트 -->
+	<update id="updateMfgScdStatus">
+		UPDATE MFG_SCHEDULES 
+		   SET MS_STATUS = #{mfgscd}
+		 WHERE MS_CODE = (
+		SELECT MS_CODE 
+		  FROM WORK_ORDER 
+		 WHERE WO_CODE = #{woCode}
+		 )
+	</update>
+	
+	<!-- MFG_PLAN 상태 업데이트 -->
+	<update id="updateMfgPlanStatus">
+		UPDATE MFG_PLANS
+   		   SET MP_STATUS = #{mfgPlan}
+ 		 WHERE MP_CODE = (
+   		SELECT MP_CODE
+          FROM MFG_SCHEDULES
+         WHERE MS_CODE = (
+        SELECT MS_CODE 
+          FROM WORK_ORDER 
+         WHERE WO_CODE = #{woCode}
+     	)
+    	   AND ROWNUM = 1
+ 		)
+	</update>
+</mapper>

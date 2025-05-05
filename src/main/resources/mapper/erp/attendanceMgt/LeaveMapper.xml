@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.erp.attendanceMgt.LeaveMapper">
+
+<!-- <select id="getAllLeaves" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO"> -->
+<!--   SELECT 1 lev_no FROM DUAL -->
+<!-- </select> -->
+
+	<!-- 어드민 모든 휴가 정보 조회 -->
+	<select id="getAllLeaves" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT 
+		    L.LEV_NO, 
+		    L.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    C_TYPE.CMN_DETAIL_NAME AS LEV_TYPE_NAME,
+		    L.LEV_START_DATE, 
+		    L.LEV_END_DATE, 
+		    L.LEV_DAYS, 
+		    LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS,
+		    L.LEV_REASON,
+		    L.LEV_REQ_DATE,
+		    L.LEV_APPROVAL_STATUS,
+		    L.LEV_APPROVER,
+		    L.LEV_APPROVAL_DATE,
+		    L.LEV_REMARKS
+		FROM LEAVES L
+		JOIN EMPLOYEES E ON L.EMP_ID = E.EMP_ID
+		
+		JOIN LEAVE_EMP LE ON L.EMP_ID = LE.EMP_ID
+		
+		JOIN COMMONCODE_DETAIL C_TYPE ON L.LEV_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		
+		ORDER BY L.LEV_NO DESC
+	</select>
+
+	<!-- 매니저 같은 부서 휴가 정보 조회 -->
+	<select id="getLeavesByDept" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT 
+		    L.LEV_NO, 
+		    L.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    C_TYPE.CMN_DETAIL_NAME AS LEV_TYPE_NAME,
+		    L.LEV_START_DATE, 
+		    L.LEV_END_DATE, 
+		    L.LEV_DAYS, 
+		    LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS,
+		    L.LEV_REASON,
+		    L.LEV_REQ_DATE,
+		    L.LEV_APPROVAL_STATUS,
+		    L.LEV_APPROVER,
+		    L.LEV_APPROVAL_DATE,
+		    L.LEV_REMARKS
+		FROM LEAVES L
+		JOIN EMPLOYEES E ON L.EMP_ID = E.EMP_ID
+		
+		JOIN LEAVE_EMP LE ON L.EMP_ID = LE.EMP_ID
+
+		JOIN COMMONCODE_DETAIL C_TYPE ON L.LEV_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.DEPT_NO = #{deptNo}
+		ORDER BY L.LEV_NO DESC
+	</select>
+
+	<!-- 유저 개인 휴가 정보 조회 -->
+	<select id="getLeavesByEmpId" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT 
+		    L.LEV_NO, 
+		    L.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    C_TYPE.CMN_DETAIL_NAME AS LEV_TYPE_NAME,
+		    L.LEV_START_DATE, 
+		    L.LEV_END_DATE, 
+		    L.LEV_DAYS, 
+		    LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS,
+		    L.LEV_REASON,
+		    L.LEV_REQ_DATE,
+		    L.LEV_APPROVAL_STATUS,
+		    L.LEV_APPROVER,
+		    L.LEV_APPROVAL_DATE,
+		    L.LEV_REMARKS
+		FROM LEAVES L
+		JOIN EMPLOYEES E ON L.EMP_ID = E.EMP_ID
+		
+		JOIN LEAVE_EMP LE ON L.EMP_ID = LE.EMP_ID
+
+		JOIN COMMONCODE_DETAIL C_TYPE ON L.LEV_TYPE = C_TYPE.CMN_DETAIL_CODE
+		
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.EMP_NO = #{empNo}
+		ORDER BY L.LEV_NO DESC
+	</select>
+	
+	<!-- 어드민 모든 휴가 보유내역 조회 -->
+	<select id="getAllUsedLeftLeaves" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT  
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    NVL(L.LEV_USED_DAYS, 0) AS LEV_USED_DAYS,
+	   		LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS
+		FROM EMPLOYEES E
+		LEFT JOIN LEAVES L ON L.EMP_ID = E.EMP_ID
+		LEFT JOIN LEAVE_EMP LE ON E.EMP_ID = LE.EMP_ID
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		ORDER BY L.LEV_NO DESC
+	</select>
+	
+	<!-- 매니저 같은부서 휴가 보유내역 조회 -->
+	<select id="getUsedLeftLeavesByDept" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT  
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    NVL(L.LEV_USED_DAYS, 0) AS LEV_USED_DAYS,
+	   		LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS
+		FROM EMPLOYEES E
+		LEFT JOIN LEAVES L ON L.EMP_ID = E.EMP_ID
+		LEFT JOIN LEAVE_EMP LE ON E.EMP_ID = LE.EMP_ID
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.DEPT_NO = #{deptNo}
+		ORDER BY L.LEV_NO DESC
+	</select>
+	
+	<!-- 유저 개인 휴가 보유내역 조회 -->
+	<select id="getUsedLeftLeavesByEmpId" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+		SELECT  
+		    E.EMP_ID, 
+		    E.EMP_NAME,
+		    C_DEPT.CMN_DETAIL_NAME AS DEPT_NAME,
+		    NVL(L.LEV_USED_DAYS, 0) AS LEV_USED_DAYS,
+	   		LE.LEV_LEFT_DAYS - NVL(L.LEV_USED_DAYS, 0) AS LEV_LEFT_DAYS
+		FROM EMPLOYEES E
+		LEFT JOIN LEAVES L ON L.EMP_ID = E.EMP_ID
+		LEFT JOIN LEAVE_EMP LE ON E.EMP_ID = LE.EMP_ID
+		JOIN COMMONCODE_DETAIL C_DEPT ON TO_CHAR(E.DEPT_NO) = C_DEPT.CMN_DETAIL_CODE
+		WHERE E.EMP_ID = #{empId}
+		ORDER BY L.LEV_NO DESC
+	</select>
+	
+	
+	
+	
+	<insert id="insertLeave" parameterType="map">
+		INSERT INTO LEAVES(
+			EMP_ID, 
+			LEV_TYPE, 
+			LEV_START_DATE, 
+			LEV_END_DATE, 
+			LEV_DAYS,
+			LEV_USED_DAYS,
+			LEV_REASON,
+			LEV_REQ_DATE,
+			LEV_APPROVAL_STATUS,
+			LEV_APPROVER,
+			LEV_APPROVAL_DATE,
+			LEV_REMARKS,
+			DOC_ID
+			)
+		VALUES(
+			#{empId},                <!-- Employees 객체의 empNo -->
+	        #{dto.levType},               <!-- LeaveDTO의 필드들 -->
+	        #{dto.levStartDate},
+	        #{dto.levEndDate},
+	        #{dto.levDays, jdbcType=DOUBLE},
+	        #{dto.levUsedDays, jdbcType=DOUBLE},
+	        #{dto.levReason},
+	        SYSDATE,
+	        #{dto.levApprovalStatus},
+	        #{dto.levApprover},
+	        #{dto.levApprovalDate},
+	        #{dto.levRemarks},
+	        #{docId}
+			)
+	</insert>
+	
+	<insert id="insertLeaveEmp">
+		INSERT INTO LEAVE_EMP
+		VALUES (#{empId}, #{vacationDaysDays})
+	</insert>
+	
+	<update id="updatelLeaveLeftDays" parameterType="map">
+		UPDATE LEAVE_EMP
+		SET LEV_LEFT_DAYS = #{levLeftDays}
+		WHERE EMP_ID = #{empId}
+	</update>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<!-- 결재 연동을 위한 쿼리 추가 -->
+    
+    <!-- 결재 문서ID로 휴가 정보 조회 -->
+    <select id="getLeaveByDocId" resultType="com.example.cmtProject.dto.erp.attendanceMgt.LeaveDTO">
+        SELECT 
+            L.*,
+            E.EMP_NAME
+        FROM LEAVES L
+        LEFT JOIN EMPLOYEES E ON L.EMP_ID = E.EMP_ID
+        WHERE L.DOC_ID = #{docId}
+    </select>
+    
+    <!-- 결재 문서ID와 함께 휴가 저장 -->
+    <insert id="insertLeaveWithDocId" parameterType="map">
+        INSERT INTO LEAVES(
+            EMP_ID, 
+            LEV_TYPE, 
+            LEV_START_DATE, 
+            LEV_END_DATE, 
+            LEV_DAYS,
+            LEV_LEFT_DAYS,
+            LEV_USED_DAYS,
+            LEV_REASON,
+            LEV_REQ_DATE,
+            LEV_APPROVAL_STATUS,
+            LEV_APPROVER,
+            LEV_APPROVAL_DATE,
+            LEV_REMARKS,
+            DOC_ID
+        ) VALUES(
+            #{empId},
+            #{dto.levType},
+            #{dto.levStartDate},
+            #{dto.levEndDate},
+            #{dto.levDays},
+            #{dto.levLeftDays},
+            #{dto.levUsedDays},
+            #{dto.levReason},
+            SYSDATE,
+            #{dto.levApprovalStatus},
+            #{dto.levApprover},
+            #{dto.levApprovalDate},
+            #{dto.levRemarks},
+            #{docId}
+        )
+    </insert>
+    
+    <!-- 휴가 상태 업데이트 -->
+    <update id="updateLeaveStatus" parameterType="map">
+        UPDATE LEAVES
+        SET 
+            LEV_APPROVAL_STATUS = #{status},
+            LEV_REMARKS = #{remarks},
+            LEV_APPROVAL_DATE = SYSDATE
+        WHERE LEV_NO = #{levNo}
+    </update>
+    
+    <!-- 휴가인지 체크 -->
+	<select id="isOnLeave" resultType="boolean" parameterType="map">
+    	SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+    	FROM LEAVES
+    	WHERE EMP_ID = #{empId}
+     	 AND #{date} BETWEEN LEV_START_DATE AND LEV_END_DATE
+	</select>
+	
+    <!-- 휴가 상태 체크 -->
+    <select id="existsAttendStatus" resultType="boolean" parameterType="map">
+    SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+    FROM ATTENDS
+    WHERE EMP_ID = #{empId}
+      AND ATD_DATE = #{date}
+	</select>
+
+	
+	
+</mapper>

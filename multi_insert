@@ -1,0 +1,48 @@
+✅ 해결 방법 1: 단건 INSERT 반복 방식 (MyBatis에서 일반적으로 사용)
+즉, 여러 개를 한 줄로 INSERT하지 말고, foreach로 한 건씩 INSERT:
+
+xml
+복사
+편집
+<insert id="savePayment" parameterType="java.util.List">
+    <foreach collection="list" item="item" separator=";">
+        INSERT INTO PAYMENTS (PAY_NO, EMP_NAME)
+        VALUES (SEQ_PAYMENTS_PAY_NO.NEXTVAL, #{item.empName})
+    </foreach>
+</insert>
+
+
+
+
+
+✅ 해결 방법 2: Java에서 미리 시퀀스 값을 할당해서 DTO에 세팅
+Java 코드에서 미리 시퀀스를 가져와서 DTO에 .setPayNo()로 넣고, 아래처럼 시퀀스 없이 INSERT:
+
+xml
+복사
+편집
+<insert id="savePayment" parameterType="java.util.List">
+    INSERT INTO PAYMENTS (PAY_NO, EMP_NAME)
+    VALUES
+    <foreach collection="list" item="item" separator=",">
+        (#{item.payNo}, #{item.empName})
+    </foreach>
+</insert>
+
+
+
+
+
+✅ 해결 방법 3: Oracle 12c 이상 + INSERT ALL 구문 (고급 방식)
+Oracle 12c 이상에서는 INSERT ALL을 사용할 수도 있습니다:
+
+xml
+복사
+편집
+<insert id="savePayment" parameterType="java.util.List">
+INSERT ALL
+<foreach collection="list" item="item">
+  INTO PAYMENTS (PAY_NO, EMP_NAME) VALUES (SEQ_PAYMENTS_PAY_NO.NEXTVAL, #{item.empName})
+</foreach>
+SELECT * FROM DUAL
+</insert>

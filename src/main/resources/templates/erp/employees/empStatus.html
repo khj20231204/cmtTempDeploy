@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}"> 
+<head>
+<style type="text/css">
+
+</style>
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMT</title>
+    
+    <th:block layout:fragment="script">
+    	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+		<!-- toast 차트 : 5,6,7,8,9,10 -->
+		<script src="https://uicdn.toast.com/chart/latest/toastui-chart.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+		<!-- TOAST Grid CDN -->
+		<link rel="stylesheet" href="https://uicdn.toast.com/tui.grid/latest/tui-grid.css">
+		<script src="https://uicdn.toast.com/tui.grid/latest/tui-grid.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+		
+		
+		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script type="text/javascript">
+            /* 
+             * 페이지별 JavaScript 코드 작성 영역
+             * - TOAST UI 초기화
+             * - 이벤트 핸들러
+             * - Ajax 요청
+             * - 기타 페이지별 로직
+             */
+		</script>
+    </th:block>
+    
+</head>
+<body>
+    <!-- 
+        중요: layout:fragment="content"는 레이아웃 템플릿에 실제 페이지 내용이 삽입될 위치를 지정합니다.
+        이 부분 안에 페이지별 HTML 내용을 작성하세요.
+    -->
+    <div layout:fragment="content">
+        <!-- 페이지 내용 작성 영역 시작 -->
+        
+        <h3>사원 현황</h3>
+        
+        <!-- 
+            여기에 페이지별 HTML 코드를 작성하세요.
+            사이드바와 메뉴는 레이아웃에서 자동으로 포함됩니다.
+        -->
+        
+        <div class="card">
+            <div class="card-header">
+            </div>
+            <div class="card-body">
+<!--                 <p>이 영역에 페이지의 주요 내용을 작성하세요.</p> -->
+        <h4>총 사원 현황</h4>    
+		<div id="statusGrid" style="margin-top: 30px;"></div>
+		
+		<!-- 3. thymeleaf에서 받아온 데이터로 자바스크립트 배열 구성 -->
+		<script th:inline="javascript">
+		    const empStatus = {
+		        total: /*[[${empStatus.total}]]*/ 0,
+		        active: /*[[${empStatus.active}]]*/ 0,
+		        retired: /*[[${empStatus.retired}]]*/ 0,
+		        onLeave: /*[[${empStatus.onLeave}]]*/ 0
+		    };
+		
+		    const statusData = [
+		        { 항목: '사원 합계', count: empStatus.total },
+		        { 항목: '재직', count: empStatus.active },
+		        { 항목: '퇴사', count: empStatus.retired },
+		        { 항목: '휴직', count: empStatus.onLeave }
+		    ];
+		
+		    const statusGrid = new tui.Grid({
+		        el: document.getElementById('statusGrid'),
+		        data: statusData,
+		        scrollX: false,
+		        scrollY: false,
+		        columns: [
+		            { header: '항목', name: '항목', align: 'center' },
+		            { header: '인원 수', name: 'count', align: 'center' }
+		        ]
+		    });
+		</script>
+		<br>
+		<h4>입사자 / 퇴사자 통계</h4>    
+		<div style="display: flex; justify-content: center; align-items: center;">
+		  <canvas id="myChart2" width="800" height="400"></canvas>
+		</div>
+		<script>
+		$(document).ready(function () {
+		    $.ajax({
+		      url: '/emp/api/empStatus',
+		      method: 'GET',
+		      dataType: 'json',
+		      success: function (res) {
+		        console.log("받은 데이터:", res);
+
+		        const ctx2 = document.getElementById('myChart2').getContext('2d');
+
+		        new Chart(ctx2, {
+		          type: 'line',
+		          data: {
+		            labels: res.LABELS,
+		            datasets: [
+		              {
+		                label: '입사자',
+		                data: res.JOINERS,
+		                borderColor: 'rgba(54, 162, 235, 1)',
+		                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+		                fill: false,
+		                tension: 0.2,
+		                borderWidth: 2
+		              },
+		              {
+		                label: '퇴사자',
+		                data: res.LEAVERS,
+		                borderColor: 'rgba(255, 99, 132, 1)',
+		                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+		                fill: false,
+		                tension: 0.2,
+		                borderWidth: 2
+		              }
+		            ]
+		          },
+		          options: {
+		            responsive: true,
+		            maintainAspectRatio: false,
+		            plugins: {
+		              title: {
+		                display: true,
+		              }
+		            },
+		            scales: {
+		              x: {
+		                type: 'category',
+		                title: {
+		                  display: true,
+		                  text: '월'
+		                }
+		              },
+		              y: {
+		                beginAtZero: true,
+		                suggestedMax: 10,
+		                title: {
+		                  display: true,
+		                  text: '인원 수'
+		                }
+		              }
+		            }
+		          }
+		        });
+		      },
+		      error: function (err) {
+		        console.error('데이터 불러오기 실패:', err);
+		      }
+		    });
+		  });
+		
+		</script>
+				
+				
+		<!-- TOAST Grid 영역 -->
+		<h4>부서별 사원 수</h4>
+		<div id="deptGrid" style="margin-top:20px;"></div>
+
+		
+
+		<!-- TOAST Grid 초기화 스크립트 -->
+		<script th:inline="javascript">
+			// thymeleaf로 넘어온 부서별 데이터
+			const deptList = /*[[${deptStatus}]]*/ [];
+
+			// 순번(rowNum) 붙이기
+			deptList.forEach((dept, index) => dept.rowNum = index + 1);
+
+			// TOAST UI Grid 생성
+			const deptGrid = new tui.Grid({
+			    el: document.getElementById('deptGrid'),
+			    data: deptList,
+			    scrollX: false,
+			    scrollY: false,
+			    columns: [
+			        { header: 'NO', name: 'rowNum', align: 'center', width: 80 },
+			        { header: '부서명', name: 'deptName', align: 'center' },
+			        { header: '인원 수', name: 'empCount', align: 'center' }
+			    ]
+			});
+		</script>
+
+		
+        <!-- 표 예시 -->
+        <div class="table-responsive"></div>
+		<br>
+		<h4>성비 그래프</h4><br>
+		<div id="myChart8"></div>
+		<script th:inline="javascript">
+			let male = /*[[${empStatus.maleCount ?: 0}]]*/ 0;
+			let female = /*[[${empStatus.femaleCount ?: 0}]]*/ 0;
+
+		    var pieOptions = {
+		        chart: {
+		            type: 'pie',
+		            height: 250
+		        },
+		        series: [male, female],
+		        labels: ['남자', '여자']
+		    };
+
+		    var pieChart = new ApexCharts(document.querySelector("#myChart8"), pieOptions);
+		    pieChart.render();
+		</script>
+		
+		
+               
+            </div>
+        </div>
+        <!-- 페이지 내용 작성 영역 끝 -->
+    </div> <!-- layout:fragment -->
+    
+    <!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->
+    
+</body>
+</html>

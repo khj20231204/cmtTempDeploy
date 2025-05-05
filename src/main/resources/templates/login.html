@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"> 
+
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMT</title>
+    
+    <!-- 파비콘 -->
+    <link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+    
+    <!-- 스타일시트 - 기존 경로 유지 -->
+    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/app-dark.css">
+    <link rel="stylesheet" href="assets/css/bootstrap.css">
+    <link rel="stylesheet" href="assets/vendors/bootstrap-icons/bootstrap-icons.css">
+    
+    <!-- auth.css 스타일 -->
+    <link rel="stylesheet" href="assets/css/pages/auth.css">
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        /* 두 번째 페이지의 auth-right 스타일 적용 */
+        #auth-right {
+            background: linear-gradient(90deg, #2d499d, #3f5491);
+        }
+        
+        /* 두 번째 페이지와 같은 버튼 스타일 */
+        .btn-primary {
+            background-color: #435ebe;
+            border-color: #435ebe;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3950a2;
+            border-color: #3950a2;
+        }
+        
+        .visitors-login {
+            margin-top: 0.5rem !important;
+        }
+    </style>
+</head>
+<body>
+    <script src="assets/static/js/initTheme.js"></script>
+    <div id="auth">
+        <div class="row h-100">
+            <div class="col-lg-5 col-12">
+                <div id="auth-left">
+                    <div class="auth-logo">
+                        <!-- 로고 자리 -->
+                        CMT
+                    </div>
+                    <h1 class="auth-title">Log in.</h1>
+                    <p class="auth-subtitle mb-5">행운 가득한 하루 되세요 🍀🍀🍀</p>
+            
+                    <form action="/login" method="post" onsubmit="return validityCheck()" id="loginForm">
+                        <div class="form-group position-relative has-icon-left mb-4">
+                            <input type="text" class="form-control form-control-xl" placeholder="ID" id="empId" name="empId" th:value="${savedEmpId}">
+                            <div class="form-control-icon">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        </div>
+                        <div class="form-group position-relative has-icon-left mb-4">
+                            <input type="password" class="form-control form-control-xl" placeholder="Password" id="empPassword" name="empPassword">
+                            <div class="form-control-icon">
+                                <i class="bi bi-shield-lock"></i>
+                            </div>
+                        </div>
+                        <div class="form-check form-check-lg d-flex align-items-end">
+                            <label class="form-check-label text-gray-600" for="flexCheckDefault">
+                            	<input class="form-check-input me-2" type="checkbox"
+							       id="flexCheckDefault" name="rememberId"
+							       th:checked="${savedEmpId != null}">
+                                아이디 기억하기
+                            </label>
+                        </div>
+                        <button class="btn btn-primary btn-block btn-lg shadow-lg mt-5">로그인</button>
+                        <button type="button" class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="userLogin">User 로그인</button>
+                        <button type="button" class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="managerLogin">Manager 로그인</button>
+                        <button type="button" class="btn btn-outline-secondary btn-block mt-2 visitors-login" id="adminLogin">Admin 로그인</button>
+                    </form>
+                    
+                    <button class="btn btn-primary mt-3" onclick="findId()">아이디 찾기</button>
+                    <div class="text-center mt-5 text-lg fs-4">
+                        <!-- 추가 링크 영역 -->
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7 d-none d-lg-block">
+                <div id="auth-right">
+                    <!-- 배경 영역 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 스크립트 블록 -->
+    <th:block layout:fragment="script">
+        <script th:if="${msg != null}">
+            alert('[[${msg}]]');
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script type="text/javascript">
+            function validityCheck() {
+                let username = document.getElementById("empId").value;
+                let pwd = document.getElementById("empPassword").value;
+                
+                if(username.trim() === "" || pwd.trim() === "") {
+                    Swal.fire('아이디와 비밀번호를 입력해주세요.');
+                    return false;
+                }
+            }   
+                    
+            function submitLoginForm(id, pw) {
+                $('#empId').val(id);
+                $('#empPassword').val(pw);
+                $('#loginForm').submit();
+            }
+                
+            $('#userLogin').on('click', function() {
+                submitLoginForm('971114', '1234');
+            });
+            
+            $('#managerLogin').on('click', function() {
+                submitLoginForm('981114', '1234');
+            });
+            
+            $('#adminLogin').on('click', function() {
+                submitLoginForm('991114', '1234');
+            });
+            
+            //아이디 찾기 window.open
+            function findId() {
+            	console.log("dkdldllrdfds");
+                const url = `/emp/findId`;
+                const options = "width=600,height=600,top=100,left=300,scrollbars=yes,resizable=yes";
+                
+                window.open(url, 'findId_', options);
+            }
+        </script>
+    </th:block>
+</body>
+</html>

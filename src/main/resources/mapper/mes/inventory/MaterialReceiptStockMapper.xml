@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.mes.inventory.MaterialReceiptStockMapper">
+
+    <!-- 입고별 재고 정보 저장 -->
+    <insert id="insertStock" parameterType="java.util.Map">
+        INSERT INTO MATERIAL_RECEIPT_STOCK (
+            RECEIPT_STOCK_NO, 
+            RECEIPT_NO,
+            MTL_CODE, 
+            REMAINING_QTY, 
+            RECEIPT_DATE, 
+            CREATED_BY, 
+            CREATED_DATE
+        ) VALUES (
+            SEQ_MATERIAL_RECEIPT_STOCK.NEXTVAL, 
+            #{receiptNo},
+            #{mtlCode}, 
+            #{remainingQty}, 
+            SYSDATE, 
+            #{createdBy}, 
+            SYSDATE
+        )
+    </insert>
+    
+    <!-- 자재코드별 입고 재고 목록 조회 (입고일 순) -->
+    <select id="getStocksByMtlCodeOrderByDate" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT 
+            RECEIPT_STOCK_NO,
+            RECEIPT_NO,
+            MTL_CODE,
+            REMAINING_QTY,
+            RECEIPT_DATE
+        FROM 
+            MATERIAL_RECEIPT_STOCK
+        WHERE 
+            MTL_CODE = #{mtlCode}
+            AND TO_NUMBER(REMAINING_QTY) > 0
+        ORDER BY 
+            RECEIPT_DATE ASC, RECEIPT_NO ASC
+    </select>
+    
+    <!-- 입고별 재고 차감 -->
+    <update id="deductStock" parameterType="java.util.Map">
+        UPDATE MATERIAL_RECEIPT_STOCK
+        SET REMAINING_QTY = TO_CHAR(TO_NUMBER(REMAINING_QTY) - TO_NUMBER(#{deductQty})),
+            UPDATED_BY = #{updatedBy},
+            UPDATED_DATE = SYSDATE
+        WHERE RECEIPT_STOCK_NO = #{receiptStockNo}
+            AND TO_NUMBER(REMAINING_QTY) >= TO_NUMBER(#{deductQty})
+    </update>
+    
+    <!-- 자재의 총 가용 재고 조회 -->
+    <select id="getTotalAvailableStock" parameterType="string" resultType="double">
+        SELECT 
+            NVL(SUM(TO_NUMBER(REMAINING_QTY)), 0)
+        FROM 
+            MATERIAL_RECEIPT_STOCK
+        WHERE 
+            MTL_CODE = #{mtlCode}
+            AND TO_NUMBER(REMAINING_QTY) > 0
+    </select>
+</mapper>

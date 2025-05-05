@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+<meta charset="UTF-8">
+	<!-- 최신 xlsx 스크립트 CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body>
+<div layout:fragment="content">
+
+	<h3>작업지시</h3>
+	
+	<div class="card">
+		    <div class="card-header">
+		        <h5 class="card-title">작업지시</h5>
+		    </div>
+		    <div class="card-body"> <!-- 여기에 내용작성 -->
+		    
+			<div class="row mb-3"> <!-- 검색박스 -->
+		        <div class="col-md-3">
+		            <input type="month" class="form-control" placeholder="등록월">
+		        </div>
+		        <div class="col-md-4">
+		            <div class="input-group">
+		                <input type="text" class="form-control" placeholder="상품명을 입력해주세요.">
+		                <button class="btn btn-outline-secondary" type="button">
+		                    <i class="bi bi-search"></i>
+		                </button>
+		            </div>
+		        </div>
+		    </div><!-- /검색박스 -->
+		    <button class="btn btn-primary btn-sm" id="regeWork" data-bs-toggle="modal" data-bs-target="#workModal">작업등록</button>
+		    </div><!-- /card-body -->
+	</div><!-- /card -->
+
+	<!-- 모달 -->
+	<div class="modal fade" id="workModal" tabindex="-1" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+	    <div class="modal-dialog modal-dialog-centered modal-xl">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="exampleModalCenterTitle">생산 계획 리스트가 뿌려짐</h5>
+	            </div>
+	            <div class="modal-body">
+	                <p>여기에 생산계획 리스트 뿌려짐 ~~~~~~~~~~~~~~~~</p>
+	                <p>계획번호 / 품목번호 / 품목 / 수량 / 생산시작예정일 / 생산완료목표일</p>
+
+	            </div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">닫기</span>
+	                </button>
+	                <button type="button" class="btn btn-primary ms-1" data-bs-dismiss="modal">
+	                    <span class="d-none d-sm-block">등록</span>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+	</div><!-- /모달 -->
+	
+
+</div> <!-- /layout:fragment -->
+</body>
+</html>

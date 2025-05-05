@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+	<head>
+		<!-- 부트스트랩 모달 css -->
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+		<!-- 부트스트랩 모달 js -->
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+		
+		<!-- 그리드 -->
+		<script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+		<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" />
+		
+		<!-- SweetAlert2 CDN -->
+		<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+		
+	    <!-- 기본 메타 정보 -->
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <title>수주 등록</title>
+    
+    <title>Cmt</title>
+	<style>
+         body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: auto;
+        }
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            width: 120px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .search-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-left: 5px;
+            border-radius: 5px;
+        }
+        .search-btn:hover {
+            background-color: #0056b3;
+        }
+        .date-container {
+            display: flex;
+            align-items: center;
+        }
+        .date-container input {
+            flex: 1;
+        }
+        .calendar-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            margin-left: 5px;
+            border-radius: 5px;
+        }
+		
+		.custom-modal-size {
+	        max-width: 900px; /* 원하는 너비로 설정 */
+	        width: 90%; /* 반응형 적용 */
+	    }
+		
+		.selecedRowClass {
+		    background-color:aliceblue !important;
+		    color: white;
+		  }
+        
+        .searchBtn { background:dodgerblue; color: white; }
+	    .requestBtn { background: purple; color: white; }
+	    .completeBtn { background: green; color: white; }
+	    .cancelBtn { background: red; color: white; }
+	    .excelBtn { background: darkblue; color: white; }
+	    .helpBtn { background: orange; color: white; }
+    </style>
+	</head>
+
+	<body>
+    <div layout:fragment="content">
+   		<form id="soForm" method="post" th:action="@{/sales/soregister}" th:object="${salesOrder}">
+		 <div class="container">
+	    	<h2>수주 정보 입력</h2>
+	        <div class="form-group">
+	            <label>거래처명 *</label>
+				<input type="text" id="cltNameTxt" readonly="true" style="margin-right: 10px;" placeholder="거래처 검색">
+				<input type="hidden" th:field="*{cltCode}" id="cltNameHidden">
+				<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#cltModal">검색</button>
+	        </div>
+	         <div class="form-group">
+	            <label>제품 *</label>
+	            <select id="productSelected" th:field="*{pdtCode}">
+	                <option th:each="product : ${productList}"
+						th:value="${product.pdtCode}"
+						th:text="${product.pdtName}">적용</option>
+	            </select>
+	        </div>
+	        <div class="form-group">
+	            <label>수주번호 *</label><!-- 서버에서 바로 처리 -->
+	            <input type="text" th:value="${nextSeq + 1}" id="sonoTxt" readonly="true">
+				<input type="hidden" id="sonoHid" th:field="*{soNo}">
+	        </div>
+	        <div class="form-group">
+	            <label>수주코드 생성 *</label><!-- 서버에서 바로 처리 -->
+				<input type="date" id="soCodeMakeDate">
+				<input type="text" id="soCodeTxt" readonly="true" th:field="*{soCode}">
+	        </div>
+	        <div class="form-group date-container">
+	            <label>수주일자 *</label>
+	            <input type="date" th:field="*{soDate}">
+	        </div>
+	         <div class="form-group date-container">
+	            <label>예상 출하일자 *</label>
+	            <input type="date" th:field="*{shipDate}">
+	        </div>
+			<div class="form-group">
+	            <label>수량 *</label>
+	            <input type="text" placeholder="숫자입력" th:field="*{soQty}">
+	        </div>
+			<div class="form-group">
+				<label>출고단가 *</label>
+				<input type="text" placeholder="숫자입력" th:field="*{pdtPrice}">
+	        </div>
+			<div class="form-group">
+				<label>진행 상태 *</label>
+				<select id="productSelected" th:field="*{soStatus}">
+	                <option th:each="soStatus : ${soStatusList}"
+						th:value="${soStatus.statusCode}"
+						th:text="${soStatus.statusName}">
+					</option>
+	            </select>
+	        </div>
+	      <div class="form-group">
+	        <label>담당자 *</label>
+	        <select id="deptSelected">
+			<option th:each="dept : ${commListDetp}"
+				th:value="${dept.cmnDetailCode}"
+				th:text="${dept.cmnDetailName}">
+			</option>
+			</select>
+			<select id="posSelected">
+				<option th:each="pos : ${commListPosition}"
+					th:value="${pos.cmnDetailCode}"
+					th:text="${pos.cmnDetailName}">
+				</option>
+			</select>
+				<select id="empSelected" th:field="*{empNo}">
+			</select>
+	       </div>
+    	</div><!-- <div class="container"> -->
+			
+		<br>	
+			
+    	<div style="text-align: center;">
+			<button type="submit" class="btn btn-primary">입력</button>
+    		<button type="button" class="btn btn-primary" onclick="window.close()">취소</button>
+    	</div>
+	</form>	
+   
+	<!-- 모달 시작 -->
+	<div class="modal fade" id="cltModal" tabindex="-1" insert>
+	    <div class="modal-dialog" style="max-width: 60%;">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="empModalLabel">거래처 목록</h5>
+	                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+	            </div>
+	            <form action="empRegi" method="post" >
+					<div class="modal-body">
+					<div id="gridTop" style="margin: 20px;"></div>
+					</div>
+	            </form>
+				
+				<br>
+				
+				<div class="modal-footer">
+					<button type="submit" class="btn btn-primary" onclick="cltReg()">등록</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                </div>
+	        </div> <!-- modal-content -->
+	    </div><!-- modal-dialog modal-lg -->
+	</div><!-- modal -->
+	<!-- 모달 끝 -->
+	
+	<!-- 그리드 시작-->
+    <script th:inline="javascript">
+	
+	let selectedGridValue; //그리드에서 선택한 row값을 저장할 전역 변수
+		
+	document.addEventListener("DOMContentLoaded", function () {
+		
+	    let grid; // 그리드 객체를 담을 변수
+		
+	    // 모달이 열린 후(`shown.bs.modal`)에 그리드 초기화
+		// 모달 안에 그리드가 있어서 초기화시 DOM에 숨겨진 상태기 때문에 초기화로 다시 그려줌
+	    $('#cltModal').on('shown.bs.modal', function () {
+	        if (!grid) { // 중복 생성 방지
+	            grid = new tui.Grid({
+	                el: document.getElementById('gridTop'),
+	                data: /*[[${cltList}]]*/ [], // Thymeleaf 데이터 바인딩
+	                //rowHeaders: ['checkbox'],
+	                scrollX: true,
+	                scrollY: true,
+	                columns: [
+	                    { 	header: '거래처코드', 
+							name: 'cltCode', 
+							sortable: true, 
+							filter: { type: 'text' }, 
+							width: 120, 
+							align: "center" 
+						},
+	                    { 	header: '거래처명', 
+							name: 'cltName', 
+							sortable: true, 
+							filter: { type: 'text' }, 
+							width: 130, 
+							align: "center" 
+						},
+	                    { 	header: '이메일', 
+							name: 'cltEmail', 
+							sortable: true, 
+							filter: { type: 'text' }, 
+							width: 180, 
+							align: "center" 
+						},
+	                    { 	header: '전화번호', 
+							name: 'cltPhone', 
+							sortable: true, 
+							filter: { type: 'text' }, 
+							width: 120, 
+							align: "center" 
+						}
+	                ]
+	            });
+				
+				// 체크박스 클릭 시 이벤트 추가
+				grid.on('check', (checkItem) => {
+				    const rowData = grid.getRow(checkItem.rowKey); 
+				    //alert(`선택한 행: 이름=${rowData.soCode}, 나이=${rowData.soDate}, 주소=${rowData.empId}`);
+				});
+				
+				// 체크 해제 시 이벤트 추가
+				grid.on('uncheck', (checkItem) => {
+				    const rowData = grid.getRow(checkItem.rowKey);
+				    //alert(`해제한 행: 이름=${rowData.name}, 나이=${rowData.age}, 주소=${rowData.address}`);
+				});
+				
+				let selectedEv = null;
+				grid.on('click', (ev) => {
+					const rowData = grid.getRow(ev.rowKey);
+
+					//그리드에서 선택한 rowData 가져오기
+					selectedGridValue = rowData ? rowData : null;
+					
+					//선택한 row 배경색 주기
+					if(selectedEv !== null){
+						grid.removeRowClassName(selectedEv.rowKey, 'selecedRowClass');
+
+					}
+					selectedEv = ev;
+					grid.addRowClassName(selectedEv.rowKey, 'selecedRowClass');
+				});
+	        }//if (!grid) 
+	    });//$('#cltModal').on('shown.bs.modal', function () {
+			
+	    // 모달이 닫힐 때 그리드를 제거하여 다음에 열릴 때 다시 생성
+		//Blocked aria-hidden 에러 방지
+	    $('#cltModal').on('hidden.bs.modal', function () {
+	        if (grid) {
+	            grid.destroy(); 
+	            grid = null;
+	        }
+	    });
+	}); //document.addEventListener("DOMContentLoaded", function () {
+	
+	function cltReg(){
+		
+		let cltcode = selectedGridValue.cltCode;
+		let cltname = selectedGridValue.cltName;
+		
+ 		let cltTxt = document.getElementById("cltNameTxt");
+		if(cltTxt){
+			cltTxt.value = cltname;
+		}
+		
+		let cltHidden = document.getElementById("cltNameHidden");
+		if(cltHidden){
+			cltHidden.value = cltcode;
+		}
+
+		$('#cltModal').modal('hide');
+	}
+	
+    </script>
+	<!-- 그리드 끝-->
+
+	<script src="https://code.jquery.com/jquery.min.js"></script>
+    <script>
+	$(document).ready(function(){
+		
+		//soNo 텍스박스의 th:value와 th:field를 같이 사용할 수 없기 때문에 
+		//값을 hidden에 넣는다
+		var sonotxt = $("#sonoTxt").val();
+		$("#sonoHid").val(sonotxt);
+		
+		//달력을 클릭했을 때 서버로 데이터를 넘겨 발주코드를 생성
+		$("#soCodeMakeDate").on('change', function(){
+			
+			var v = $(this).val();
+			
+			$.ajax({
+				url: '/sales/makePoCode',
+				type: 'GET',
+				data: {data: v},
+				success : function(response){
+					console.log(response)
+					$("#soCodeTxt").val(response);
+				},
+				error : function(error){
+					console.log("error:" + error)
+				}
+				
+			});
+		})
+		
+		
+		//부서와 직위가 변할 때 마다 다른 직원 목록 가져오기
+		let deptCode = $("#deptSelected").val();
+		let posCode = $("#posSelected").val();
+		
+		let code = {
+			"deptCode" : deptCode,
+			"posCode" : posCode
+		};
+		
+		ajaxExe(code);
+		
+		//부서 셀이 변경될 때 마다 내용 갱신 후 ajaxExe(서버쪽으로 전송)에 반영
+		$("#deptSelected").on("change",function(){
+			//alert("dept변경");
+			deptCode = $("#deptSelected").val();
+			posCode = $("#posSelected").val();
+			
+			code = {
+    			"deptCode" : deptCode,
+    			"posCode" : posCode
+    		};
+			
+			ajaxExe(code);
+		})
+		
+		//직급 셀이 변경될 때 마다 내용 갱신 후 ajaxExe(서버쪽으로 전송)에 반영
+		$("#posSelected").on("change", function(){
+			deptCode = $("#deptSelected").val();
+			posCode = $("#posSelected").val();
+			
+			code = {
+    			"deptCode" : deptCode,
+    			"posCode" : posCode
+    		};
+			
+			ajaxExe(code);
+		})
+		
+		
+		function ajaxExe(code){
+			if(code){
+				$.ajax({
+	    			url:"/sales/getEmpName",
+	    			type:"GET",
+	    			data: code,
+	    			success: function(data){
+	    				let $select = $("#empSelected");
+						
+						//$select.find("option:not(:first)").remove();
+						$select.find("option").remove();
+						
+						//서버로부터 data를 가져와서 셀렉션에 forEach로 추가
+						data.forEach(emp => {
+							console.log(emp)
+							let option = `<option value="${emp.EMP_NO}">${emp.EMP_NAME}</option>`;
+							$select.append(option);								
+						});
+	    			},
+	    			error: function(error){
+	    				alert(error);
+	    			}
+	    		}); 
+			}
+		}
+	});
+	
+    </script>
+	
+	</div> <!-- layout:fragment="content" -->
+	
+	<th:block layout:fragment="script">
+	</th:block>
+</body>
+
+</html>
+
+

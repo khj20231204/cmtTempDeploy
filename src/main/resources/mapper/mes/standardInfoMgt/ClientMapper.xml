@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.mes.standardInfoMgt.ClientMapper">
+	<insert id="insertClientList" parameterType="com.example.cmtProject.dto.mes.standardInfoMgt.ClientsDTO">
+	    INSERT INTO CLIENTS (
+	        CLT_NO,
+            CLT_TYPE,
+            CLT_NAME,
+            CLT_OWNER_NAME,
+            CLT_MANAGER_NAME,
+            CLT_PHONE,
+            CLT_EMAIL,
+            CLT_ADDRESS,
+<!--             CLT_POST_CODE, -->
+<!--             CLT_ADDRESS2, -->
+            CLT_COMMENTS,
+            REGI_DATE
+        ) VALUES (
+         CLIENTS_SEQ.NEXTVAL,
+            #{cltType},
+            #{cltName},
+            #{cltOwnerName},
+            #{cltManagerName},
+            #{cltPhone},
+            #{cltEmail},
+            #{cltAddress},
+<!--             #{cltPostCode}, -->
+<!--             #{cltAddress2}, -->
+            #{cltComments},
+            SYSDATE
+        )
+    </insert>
+	
+	<select id="selectClientList" resultType="com.example.cmtProject.dto.mes.standardInfoMgt.ClientsDTO">
+		SELECT * FROM CLIENTS ORDER BY CLT_NO
+	</select>
+	
+	<delete id="deleteClientList" parameterType="Long">
+		DELETE FROM CLIENTS
+		WHERE CLT_NO = #{cltNo}
+	</delete>
+	
+	
+	
+
+</mapper>

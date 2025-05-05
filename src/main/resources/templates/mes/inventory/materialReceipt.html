@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout}">
+<head>
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>원자재 입고관리</title>
+<style>
+    /* 상단 입력 그룹: 검색 및 버튼들을 가로로 배치하며 필요시 줄바꿈 허용 */
+    .top-input-group {
+        display: flex; /* 플렉스박스로 배치 */
+        align-items: flex-start; /* 위쪽 정렬 */
+        justify-content: space-between; /* 좌우 여백 최대 */
+        flex-wrap: wrap; /* 요소가 넘칠 경우 줄바꿈 */
+        gap: 10px; /* 요소 간 간격 */
+        margin-bottom: 15px; /* 하단 여백 */
+    }
+
+    /* 검색 및 파일 관련 그룹: 가로 배치, 줄바꿈 가능 */
+    .search-file-group {
+        display: flex;
+        align-items: center; /* 수직 정렬 */
+        gap: 8px; /* 요소 간 여백 */
+        flex-wrap: wrap; /* 줄바꿈 허용 */
+        flex: 1 1 auto; /* 공간을 적절히 차지하도록 설정 */
+        min-width: 500px; /* 최소 너비 확보 (줄바꿈 방지) */
+    }
+
+    /* CRUD 버튼 그룹: 버튼을 가로로 배치, 줄바꿈 허용 */
+    .button-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* 일반 입력창 스타일: 최대 너비 설정, 반응형 대응 */
+    .form-control {
+        max-width: 200px; /* 최대 너비 제한 */
+        flex: 0 1 auto; /* 내용에 따라 너비 조절 */
+    }
+
+    /* 파일 업로드 입력창 스타일 */
+    .file-input {
+        max-width: 280px;
+        flex: 0 1 auto;
+    }
+
+    /* 엑셀 업로드/다운로드 버튼 스타일 */
+    .btn-excel {
+        background-color: #1D6F42; /* 녹색 배경 */
+        color: white; /* 흰색 텍스트 */
+        white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
+    }
+
+    /* 엑셀 버튼 호버 시 스타일 */
+    .btn-excel:hover {
+        background-color: #15562F; /* 더 어두운 녹색 */
+        color: white;
+    }
+
+    /* 테이블 전체 스타일 */
+    .table {
+        table-layout: fixed; /* 열 너비 고정 */
+        width: 100%; /* 부모 너비에 맞춤 */
+    }
+
+    /* 테이블 스크롤 영역 */
+    .table-responsive {
+         height: 500px; /* 높이 고정 - 상세 정보 표시를 위해 축소 */
+         overflow: auto; /* 스크롤 활성화 */ 
+         -webkit-overflow-scrolling: touch; /* 모바일 스크롤 개선 */ 
+     } 
+
+    /* 첫 번째 열(선택 체크박스)의 너비와 정렬 */
+    th:first-child,
+    td:first-child {
+        width: 40px;
+        text-align: center;
+    }
+
+    /* TOAST UI Grid의 비활성 셀 스타일 */
+    .tui-grid-cell-disabled {
+        background-color: #fff !important;
+        color: #212529 !important;
+    }
+
+    /* 상세 정보 영역 스타일 */
+	.detail-section {
+	    margin-top: 20px;
+	    border: 1px solid #ddd;
+	    border-radius: 8px; /* 카드와 동일한 둥근 모서리로 수정 */
+	    padding: 15px;
+	    background-color: #fff; /* 흰색 배경으로 변경 (입고리스트와 동일) */
+	    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); /* 카드와 동일한 그림자 추가 */
+	}
+	
+	/* 테이블 헤더 스타일 통일 */
+	.detail-section .table-bordered th {
+	    background-color: #f2f2f7; /* 헤더 배경색 적용 */
+	    color: #676293; /* 레이아웃의 라벨 색상과 동일하게 */
+	}
+    
+    /* 탭 컨텐츠 영역 스타일 */
+    .tab-content {
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 5px 5px;
+        background-color: #fff;
+    }
+    
+    /* 상태 배지 스타일 */
+    .badge {
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-weight: 500;
+    }
+    
+    .badge-waiting {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .badge-inspecting {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .badge-completed {
+        background-color: #28a745;
+        color: white;
+    }
+    .badge-inspectPass {
+        background-color: #FFC107;
+        color: white;
+    }
+    
+    .badge-canceled {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    /* 반응형: 화면이 좁을 때의 처리 */
+    @media (max-width: 768px) {
+        .top-input-group {
+            flex-direction: column; /* 세로로 배치 */
+            align-items: flex-start; /* 왼쪽 정렬 */
+        }
+
+        .search-file-group,
+        .button-group {
+            width: 100%; /* 전체 너비 사용 */
+            margin-bottom: 10px; /* 하단 여백 */
+        }
+    }
+</style>
+
+
+</head>
+<body>
+    <!-- 
+        layout:fragment="content"는 레이아웃 템플릿에 실제 페이지 내용이 삽입될 위치를 지정합니다.
+        이 부분 안에 페이지별 HTML 내용을 작성하세요.
+    -->
+    <div layout:fragment="content">
+        <h3>원자재 입고관리</h3>
+        
+        <!--입고관리 정보 섹션 -->
+        <section class="section">
+            <div class="row" id="basic-table">
+                <!-- 원자재입고관리 정보 그리드 카드 -->
+                <div class="col-12 col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="card-title">원자재 입고리스트</h4>
+                            
+                            <!-- 검색, 엑셀 다운로드 및 작업 버튼 -->
+                            <div class="top-input-group">
+                                <!-- 왼쪽: 검색 및 엑셀 관련 -->
+                                <div class="search-file-group">
+                                    <input type="text" class="form-control" id="mReceiptInput" 
+                                        placeholder="입고목록 검색">
+                                    <button type="button" id="mReceiptSearchBtn" class="btn btn-outline-primary">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                    
+                                    <!-- 엑셀 다운로드 버튼 -->
+                                    <button type="button" id="mReceiptExcelDownBtn" class="btn btn-excel">
+                                        <i class="bi bi-file-earmark-arrow-down"></i> 엑셀 다운로드
+                                    </button>
+                                </div>
+                                
+                                <!-- 오른쪽: 작업 버튼 -->
+                                <div class="button-group">
+									<button type="button" id="mReceiptTestBtn" class="btn btn-outline-secondary">
+										<i class="bi bi-plus-circle"></i>입고요청</button>
+                                    <button type="button" id="mReceiptConfirmBtn" class="btn btn-outline-success">
+                                        <i class="bi bi-check-circle"></i> 입고확정
+                                    </button>
+                                    <button type="button" id="mReceiptConfirmWithLocationBtn" class="btn btn-outline-info">
+                                        <i class="bi bi-geo-alt"></i> 위치지정 입고확정
+                                    </button>
+                                    <button type="button" id="mReceiptInspectionBtn" class="btn btn-outline-primary">
+                                        <i class="bi bi-clipboard-check"></i> 검수등록
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <!-- 입고리스트 그리드 -->
+                                <div id="mReceiptGrid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 상세 정보 영역 -->
+        <section class="section detail-section" id="detailSection" style="display: none;">
+            <div class="row">
+                <div class="col-12 col-md-12">
+                    <h5><i class="bi bi-info-circle"></i> 입고 상세 정보</h5>
+                    
+                    <!-- 탭 네비게이션 -->
+                    <ul class="nav nav-tabs" id="receiptDetailTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#basic-info" type="button" role="tab" 
+                                    aria-controls="basic-info" aria-selected="true">
+                                기본정보
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="history-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#history-info" type="button" role="tab" 
+                                    aria-controls="history-info" aria-selected="false">
+                                이력정보
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- 탭 컨텐츠 -->
+                    <div class="tab-content" id="receiptDetailTabContent">
+                        <!-- 기본정보 탭 -->
+                        <div class="tab-pane fade show active" id="basic-info" role="tabpanel" aria-labelledby="basic-info-tab">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th style="width: 30%">입고번호</th>
+                                            <td id="receiptNo"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>입고코드</th>
+                                            <td id="receiptCode"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>자재코드</th>
+                                            <td id="mtlCode"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>자재명</th>
+                                            <td id="mtlName"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>입고수량</th>
+                                            <td id="receivedQty"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th style="width: 30%">입고일</th>
+                                            <td id="receiptDate"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>입고상태</th>
+                                            <td id="receiptStatus"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>발주코드</th>
+                                            <td id="poCode"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>창고/위치</th>
+                                            <td id="warehouseInfo"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>입고담당자</th>
+                                            <td id="receiver"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 이력정보 탭 -->
+                        <div class="tab-pane fade" id="history-info" role="tabpanel" aria-labelledby="history-tab">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 170px;">작업일시</th>
+                                        <th style="width: 150px;">작업유형</th>
+                                        <th >처리내용</th>
+                                        <th style="width: 150px;">작업자</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyInfoBody">
+                                    <!-- 이력 정보가 여기에 동적으로 추가됩니다 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 위치지정 입고확정 모달 -->
+        <div class="modal fade" id="confirmWithLocationModal" tabindex="-1" aria-labelledby="confirmWithLocationModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="confirmWithLocationModalLabel">위치지정 입고확정</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 선택한 항목의 입고 위치 정보를 지정하고 확정합니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="warehouseSelect" class="form-label">창고 선택</label>
+                                <select class="form-select" id="warehouseSelect">
+                                    <option value="">창고를 선택하세요</option>
+                                    <!-- 창고 목록이 여기에 동적으로 추가됩니다 -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="locationSelect" class="form-label">위치 선택</label>
+                                <select class="form-select" id="locationSelect" disabled>
+                                    <option value="">위치를 선택하세요</option>
+                                    <!-- 위치 목록이 여기에 동적으로 추가됩니다 -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>입고 코드</th>
+                                            <th>자재 코드</th>
+                                            <th>자재명</th>
+                                            <th>수량</th>
+                                            <th>상태</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="confirmItemsBody">
+                                        <!-- 확정할 항목 목록이 여기에 동적으로 추가됩니다 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="button" class="btn btn-success" id="confirmReceiptBtn">입고 확정</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 발주입고처리 모달 -->
+        <div class="modal fade" id="purchaseToReceiptModal" tabindex="-1" aria-labelledby="purchaseToReceiptModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="purchaseToReceiptModalLabel">
+									원자재 입고요청</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i> 미입고 상태의 발주를 입고대기 상태로 등록합니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="purchaseOrderGrid" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                        <button type="button" class="btn btn-primary" id="processPurchaseOrderBtn">입고 요청</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->
+    <th:block layout:fragment="script">
+        <script th:inline="javascript">
+            // Thymeleaf 데이터를 전역 변수로 설정
+            window.mReceipt = /*[[${mReceipt}]]*/[];
+            console.log("mReceipt 데이터:", window.mReceipt);
+        </script>
+        <script src="/js/inventory/mReceiptManager.js"></script>
+        <script src="/js/commonJs/ExcelUtil.js"></script>
+        <script src="/js/commonJs/GridSearchUtil.js"></script>
+    </th:block>
+</body>
+</html>

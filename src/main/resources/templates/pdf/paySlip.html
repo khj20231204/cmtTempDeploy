@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>급여명세서</title>
+    <style>
+         /* 기본 스타일 */
+        * {
+         	font-family: 'NanumGothic', sans-serif;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 10pt;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        /* 명세서 스타일 */
+        .payslip {
+            width: 100%;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 2cm;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* 기존 명세서 스타일 유지 */
+        .payslip-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #000;
+        }
+        .payslip-title {
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 10px;
+        }
+        .company-info {
+            font-size: 11pt;
+            margin-bottom: 15px;
+        }
+        .payslip-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            table-layout: fixed;
+        }
+        .payslip-table, .payslip-table th, .payslip-table td {
+            border: 1px solid #000;
+        }
+        .payslip-table th {
+            background-color: #f2f2f2;
+            text-align: center;
+            padding: 5px;
+            font-weight: normal;
+            width: 25%;
+        }
+        .payslip-table td {
+            padding: 5px 8px;
+        }
+        .align-right {
+            text-align: right;
+        }
+        .section-title {
+            font-weight: bold;
+            margin: 20px 0 10px 0;
+            font-size: 11pt;
+        }
+        .total-row {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .final-amount {
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        .signature {
+            text-align: center;
+            margin-top: 40px;
+            line-height: 1.8;
+        }
+
+        /* 버튼 컨테이너 스타일 - 미리보기일 때만 표시 */
+        .action-buttons {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .preview-mode .action-buttons {
+            display: block;
+        }
+
+        /* 버튼 스타일 */
+        .btn {
+            padding: 8px 16px;
+            margin: 0 4px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        /* 인쇄 설정 */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .payslip {
+                box-shadow: none;
+                padding: 0;
+            }
+            .action-buttons {
+                display: none !important;
+            }
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+	 <div class="payslip">
+	        <!-- 헤더 -->
+	        <div class="payslip-header">
+		    <h1 class="payslip-title" th:text="${#temporals.format(pay.payDate, 'yyyy-MM') + ' 일분 급여명세서'}">급여명세서</h1>
+		    <div class="company-info">
+		        <p>주식회사 CMT.</p>
+			    </div>
+			</div>
+	
+	        <!-- 기본 정보 -->
+	        <table class="payslip-table">
+			    <tr>
+			        <th>성명</th>
+			        <td th:text="${pay.empName}">푸바옹</td>
+			        <th>사원번호</th>
+			        <td th:text="${pay.empId}"></td>
+			    </tr>
+			    <tr>
+			        <th>부서</th>
+			        <td th:text="${pay.deptName}">영업</td>
+			        <th>직위</th>
+			        <td th:text="${pay.position}">과장</td>
+			    </tr>
+			    <tr>
+			        <th>지급년월</th>
+			        <td th:text="${#temporals.format(pay.payDate, 'yyyy-MM') + ' 월분'}"></td>
+			        <th>지급일자</th>
+			        <td th:text="${pay.payDate}">2025-04-02</td>
+			    </tr>
+			</table>
+			
+			<div class="amount-table">
+			    <div class="section-title">■ 수당내역</div>
+			    <table class="payslip-table">
+			        <tr>
+			            <th>기본급</th>
+			            <td class="align-right" th:text="${pay.payBasic}">2600000</td>
+			        </tr>
+<!-- 			        <tr> -->
+<!-- 			            <th>기술수당</th> -->
+<!-- 			            <td class="align-right" th:text="${pay.payBonusTech}">0</td> -->
+<!-- 			        </tr> -->
+<!-- 			        <tr> -->
+<!-- 			            <th>근속수당</th> -->
+<!-- 			            <td class="align-right" th:text="${pay.payBonusLong}">0</td> -->
+<!-- 			        </tr> -->
+<!-- 			        <tr> -->
+<!-- 			            <th>성과상여금</th> -->
+<!-- 			            <td class="align-right" th:text="${pay.payBonusIncentive}">0</td> -->
+<!-- 			        </tr> -->
+					<tr>
+			            <th>야근수당</th>
+			            <td class="align-right" th:text="${pay.payBonusOvertime}">100000</td>
+			        </tr>
+			        <tr>
+			            <th>명절수당</th>
+			            <td class="align-right" th:text="${pay.payBonusHoliday}">100000</td>
+			        </tr>
+<!-- 			        <tr> -->
+<!-- 			            <th>휴가수당</th> -->
+<!-- 			            <td class="align-right" th:text="${pay.payBonusVacation}">0</td> -->
+<!-- 			        </tr> -->
+			        <tr class="total-row">
+			            <th>총수당액</th>
+			            <td class="align-right" th:text="${pay.payBonusTotal}">200000</td>
+			        </tr>
+			    </table>
+			</div>
+			
+			<div class="amount-table">
+			    <div class="section-title">■ 공제내역</div>
+			    <table class="payslip-table">
+			        <tr>
+			            <th>국민연금</th>
+			            <td class="align-right" th:text="${pay.payTaxPension}">20000</td>
+			        </tr>
+			        <tr>
+			            <th>건강보험</th>
+			            <td class="align-right" th:text="${pay.payTaxHealth}">20000</td>
+			        </tr>
+			        <tr>
+			            <th>장기요양보험</th>
+			            <td class="align-right" th:text="${pay.payTaxCare}">20000</td>
+			        </tr>
+			        <tr>
+			            <th>고용보험</th>
+			            <td class="align-right" th:text="${pay.payTaxEmployment}">20000</td>
+			        </tr>
+			        <tr>
+			            <th>소득세</th>
+			            <td class="align-right" th:text="${pay.payTaxIncome}">20000</td>
+			        </tr>
+			        <tr>
+			            <th>주민세</th>
+			            <td class="align-right" th:text="${pay.payTaxResidence}">20000</td>
+			        </tr>
+			        <tr class="total-row">
+			            <th>총공제액</th>
+			            <td class="align-right" th:text="${pay.payTaxTotal}">120000</td>
+			        </tr>
+			    </table>
+			</div>
+			 
+			<div class="final-amount">
+			    <table class="payslip-table">
+			        <tr class="total-row">
+			            <th>실지급액</th>
+			            <td class="align-right" colspan="3" th:text="${pay.payTotal + ' 원'}">2080000 원</td>
+			        </tr>
+			    </table>
+	        </div>
+	
+	        <!-- 서명 -->
+	        <div class="signature">
+	            <p>위 금액을 정히 영수합니다.</p>
+	            <p th:text="${#temporals.format(today, 'yyyy년 MM월 dd일')}"></p>
+
+	            <p>주식회사 CMT.</p>
+	        </div>
+	    </div>
+
+</body>
+</html>

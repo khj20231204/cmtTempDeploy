@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+
+<mapper namespace="com.example.cmtProject.mapper.mes.qualityControl.FqcMapper">
+
+	<select id="getAllFqc" resultType="com.example.cmtProject.dto.mes.qualityControl.FqcDTO">
+	SELECT DISTINCT
+        F.FQC_NO,
+        F.FQC_CODE,
+        F.CHILD_LOT_CODE,
+        E.EMP_NAME,
+        E.EMP_ID,
+        F.QCM_NAME,
+        P.PDT_NAME,
+        F.FQC_START_TIME,
+        F.FQC_END_TIME,
+        F.WO_QTY,
+        F.UNIT_QTY,
+        F.FQC_MEASURED_WEIGHT_VALUE,
+        F.FQC_MEASURED_LENGTH_VALUE,
+        C_UNIT_LENGTH.CMN_DETAIL_NAME AS QCM_UNIT_LENGTH,
+		C_UNIT_WEIGHT.CMN_DETAIL_NAME AS QCM_UNIT_WEIGHT,
+		F.FQC_INSPECTION_STATUS,
+		F.FQC_INSPECTION_RESULT,
+        F.WHS_NAME,
+        F.LOT_NO,
+        F.FQC_REMARKS,
+        F.WO_CODE
+    FROM FQC F
+    LEFT JOIN COMMONCODE_DETAIL C_UNIT_LENGTH ON C_UNIT_LENGTH.CMN_DETAIL_NAME = F.QCM_UNIT_LENGTH
+	LEFT JOIN COMMONCODE_DETAIL C_UNIT_WEIGHT ON C_UNIT_WEIGHT.CMN_DETAIL_NAME = F.QCM_UNIT_WEIGHT	
+	LEFT JOIN EMPLOYEES E ON E.EMP_ID = F.EMP_ID
+	JOIN PRODUCTS P ON P.PDT_CODE = F.PDT_CODE
+	WHERE F.FQC_VISIABLE = 'Y'
+    ORDER BY FQC_NO DESC
+	</select>
+	
+	<!-- 비고란 업데이트 -->
+	<update id="fqcRemarksAndQcmNameUpdate" parameterType="com.example.cmtProject.dto.mes.qualityControl.FqcDTO">
+		UPDATE FQC
+		SET 
+			FQC_REMARKS = #{fqcRemarks},
+			QCM_NAME = #{qcmName, jdbcType=VARCHAR},
+			QCM_UNIT_WEIGHT = #{qcmUnitWeight},
+			QCM_UNIT_LENGTH = #{qcmUnitLength}
+		WHERE FQC_NO = #{fqcNo}
+	</update>
+	
+	<!-- 삭제 대신 안보이게 업데이트 -->
+	<update id="isVisiableToFalse" parameterType="list">
+	  UPDATE FQC
+	  SET FQC_VISIABLE = 'N'
+	  WHERE FQC_NO IN (
+	    <foreach item="id" collection="list" separator=",">
+	      #{id}
+	    </foreach>
+	  )
+	</update>
+	
+	
+	<!-- 엑셀 데이터 업데이트 -->
+	<update id="saveExcelData" parameterType="com.example.cmtProject.dto.mes.qualityControl.FqcDTO">
+		UPDATE FQC
+	    SET
+	    	CHILD_LOT_CODE              = #{childLotCode},
+	        FQC_INSPECTION_STATUS       = #{fqcInspectionStatus},
+	        FQC_INSPECTION_RESULT       = #{fqcInspectionResult},
+	        FQC_CODE                    = #{fqcCode},
+	        QCM_NAME                    = #{qcmName},
+	        EMP_NAME                    = #{empName},
+	        EMP_ID                      = #{empId},
+	        PDT_NAME                    = #{pdtName},
+	        WO_QTY                 	    = #{woQty},
+	        UNIT_QTY                    = #{unitQty},
+	        FQC_MEASURED_WEIGHT_VALUE   = #{fqcMeasuredWeightValue},
+	        QCM_UNIT_WEIGHT             = #{qcmUnitWeight},
+	        FQC_MEASURED_LENGTH_VALUE   = #{fqcMeasuredLengthValue},
+	        QCM_UNIT_LENGTH             = #{qcmUnitLength},
+	        FQC_START_TIME              = #{fqcStartTime},
+	        FQC_END_TIME                = #{fqcEndTime},
+	        WHS_NAME                    = #{whsName},
+	        FQC_REMARKS                 = #{fqcRemarks}
+	    WHERE FQC_NO = #{fqcNo}
+	</update>
+	
+	
+	<!-- 물건 출고시 출고 검사 검사전과 필요한 데이터 가져오기 -->
+	<select id="getLot" resultType="map">
+		SELECT 
+			ISSUE_CODE,
+			PDT_CODE,
+			ISSUED_QTY
+		FROM
+			PRODUCTS_ISSUE
+		WHERE ISSUE_CODE = #{woCode}
+	</select>
+	
+	<!-- FQC CODE 생성 및 최대값 가져오는 코드 -->
+	<select id="getMaxFqcCodeSeq" resultType="int" parameterType="string">
+	  SELECT 
+	    COALESCE(MAX(TO_NUMBER(SUBSTR(FQC_CODE, 14))), 0)
+	  FROM 
+	    FQC
+	  WHERE 
+	    SUBSTR(FQC_CODE, 5, 8) = #{datePart}
+	</select>
+
+	<!-- 출고가 되기전 검사 시작 눌렀을시 저장될 데이터들 -->
+	<insert id="insertFqcInspectionList" parameterType="map">
+	INSERT INTO FQC (
+	  FQC_INSPECTION_STATUS,
+	  FQC_INSPECTION_RESULT,
+	  FQC_CODE, 
+	  WO_CODE,
+	  PDT_CODE, 
+	  WO_QTY, 
+	  UNIT_QTY,
+	  FQC_VISIABLE
+	)
+	SELECT
+	  '검사시작',
+	  '예정',
+	  #{fqcCode},
+	  #{woCode}, 
+	  #{pdtCode}, 
+	  #{woQty},
+	  '개',
+	  'Y'
+	FROM DUAL
+	WHERE NOT EXISTS (
+	  SELECT 1 FROM FQC WHERE ISSUE_CODE = #{woCode}
+	)
+	</insert>
+	
+	<!-- 검사전에서 검사중으로 업데이트 -->
+	<update id="updateFqcInspectionStatusProcessing" parameterType="map">
+		UPDATE FQC
+		SET 
+			FQC_INSPECTION_STATUS = '검사중',
+			EMP_NAME = #{emp.empName},
+			EMP_ID = #{emp.empId},
+			FQC_START_TIME = #{fqc.fqcStartTime}
+		WHERE FQC_CODE = #{fqc.fqcCode}
+	</update>
+	
+	
+	<!-- 검사중에서 검사완료로 업데이트 -->
+	<update id="updateFqcInspectionStatusComplete" parameterType="com.example.cmtProject.dto.mes.qualityControl.FqcDTO">
+		UPDATE FQC
+		SET 
+			FQC_INSPECTION_STATUS = '검사완료',
+			FQC_END_TIME = #{fqcEndTime}
+		WHERE FQC_CODE = #{fqcCode}
+	</update>
+	
+	<select id="selectQcmInfoByFqcCode" parameterType="string" resultType="com.example.cmtProject.dto.mes.qualityControl.QcmDTO">
+	    SELECT 
+	        Q.QCM_MIN_VALUE,
+	        Q.QCM_MAX_VALUE,
+	        Q.QCM_UNIT_WEIGHT,
+      		Q.QCM_UNIT_LENGTH
+	    FROM FQC F
+	    JOIN QCM Q ON F.QCM_NAME = Q.QCM_NAME
+	    WHERE F.FQC_CODE = #{fqcCode}
+	</select>
+	
+	<update id="updateMeasuredValues" parameterType="map">
+	    UPDATE FQC
+	    SET
+	    	FQC_MEASURED_WEIGHT_VALUE = #{weightValue},
+	        FQC_MEASURED_LENGTH_VALUE = #{lengthValue},
+	        FQC_INSPECTION_RESULT = #{result}
+	    WHERE FQC_CODE = #{fqcCode}
+	</update>
+	
+	<!-- 도넛 차트 값 넘겨주는 쿼리 -->
+	<select id="getSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+	SELECT 
+        SUM(CASE WHEN FQC_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+        SUM(CASE WHEN FQC_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+        SUM(CASE WHEN FQC_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+    FROM FQC
+        WHERE FQC_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND FQC_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        ORDER BY TO_CHAR(FQC_START_TIME, 'YYYYMMDD')
+	</select>
+	
+	<!-- 최근 7일 PASS, IN_PROGRESS, FAIL 개수 조회 -->
+    <select id="getLast7DaysSummary" resultType="com.example.cmtProject.dto.mes.qualityControl.InspectionSummaryDTO">
+        SELECT
+        	TO_CHAR(FQC_START_TIME, 'YYYYMMDD') AS fqcDate,
+            SUM(CASE WHEN FQC_INSPECTION_RESULT = '합격' THEN 1 ELSE 0 END) AS passCount,
+            SUM(CASE WHEN FQC_INSPECTION_STATUS = '검사중' THEN 1 ELSE 0 END) AS inProgressCount,
+            SUM(CASE WHEN FQC_INSPECTION_RESULT = '불합격' THEN 1 ELSE 0 END) AS failCount
+        FROM FQC
+        WHERE FQC_START_TIME &gt;= TRUNC(SYSDATE) - 6
+          AND FQC_START_TIME &lt;= TRUNC(SYSDATE) + 1
+        GROUP BY TO_CHAR(FQC_START_TIME, 'YYYYMMDD')
+        ORDER BY TO_CHAR(FQC_START_TIME, 'YYYYMMDD')
+    </select>
+	
+
+
+</mapper>

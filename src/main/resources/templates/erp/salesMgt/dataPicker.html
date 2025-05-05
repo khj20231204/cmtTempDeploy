@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid 팝업</title>
+
+	<link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" />
+    <script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+	
+	<link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+	<script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.js"></script>
+
+
+	
+</head>
+<body>
+	
+	<div class="tui-datepicker-input tui-datetime-input tui-has-focus">
+	  
+	  <span class="tui-ico-date"></span>
+	</div>
+
+	<input type="text" id="dpTarget" aria-label="Date-Time" />
+	<div id="dpContainer" style="margin-top: -1px;"></div>
+			
+		
+    <div id="grid"></div>
+
+    <script>
+		const DatePicker = tui.DatePicker;
+		
+		//const DatePicker = require('tui-date-picker'); /* CommonJS */
+		
+		const container = document.getElementById('dpContainer'); //실제 날짜 출력 위치
+		const target = document.getElementById('dpTarget'); //날짜 선택 기능
+
+		const instance = new DatePicker(container, {
+		    input: {
+		        element: target
+		    },
+		});
+
+		
+    </script>
+</body>
+</html>

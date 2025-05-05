@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!--layout.html-->
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+        <!-- ======= 공통 CSS 파일 (모든 페이지에서 사용) ======= -->
+    <!-- 파비콘 및 아이콘 -->
+    <link rel="icon" href="/images/favicon.png" type="images/png">
+    <link rel="stylesheet" href="/assets/vendors/bootstrap-icons/bootstrap-icons.css">
+
+    <!-- 부트스트랩 및 기본 스타일 -->
+    <link rel="stylesheet" href="/assets/css/bootstrap.css">
+    <link rel="stylesheet" href="/assets/vendors/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
+
+    <!-- TOAST UI 라이브러리 스타일 -->
+    <!-- Grid와 DatePicker는 많은 페이지에서 사용되므로 공통으로 포함 -->
+    <!-- TOAST UI Pagination CSS -->
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.css" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/grid/latest/tui-grid.css" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.css" />
+  	
+  	<!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- ======= 개별 페이지 CSS ======= -->
+    <!-- 각 페이지에서 필요한 특정 CSS를 이 블록에 추가할 수 있음 -->
+    <!-- 예: <link rel="stylesheet" href="/css/specific-page.css"> -->
+    <th:block layout:fragment="css"></th:block>
+
+    <!-- ======= 공통 스타일 ======= -->
+    <!-- 모든 페이지에서 공통으로 사용되는 인라인 스타일 -->
+    <style>
+        /* TOAST UI Grid 셀 배경색 (흰색으로 강제 설정) */
+        .tui-grid-cell {
+            background-color: #ffffff !important;
+        }
+
+        /* 필수 입력 항목 표시 (빨간색 별표) */
+        .required {
+            color: #DF0101;
+        }
+
+        /* 레이블 스타일 */
+        label {
+            color: #676293;
+            font-weight: bold;
+        }
+        
+  
+		  #loadingOverlay {
+		  position: fixed;
+		  top: 0;
+		  left: 0;
+		  width: 100%;
+		  height: 100%;
+		  background-color: rgba(0, 0, 0, 0.4);
+		  display: flex;
+		  justify-content: center;
+		  align-items: center;
+		  z-index: 9999; /* 최상단 */
+		}
+		
+		.spinner-border {
+		  width: 3rem;
+		  height: 3rem;
+		}
+		
+
+        /* 추가 공통 스타일은 여기에 작성 */
+    </style>
+
+    <!-- ======= 공통 JavaScript 파일 (모든 페이지에서 사용) ======= -->
+    <!-- jQuery 라이브러리 - 가장 먼저 로드해서 의존성 문제 해결 -->
+    <script src="/js/jquery-3.7.1.js"></script>
+    
+    <!-- 부트스트랩 및 UI 관련 스크립트 -->
+    <script src="/assets/vendors/perfect-scrollbar/perfect-scrollbar.min.js"></script>
+    <script src="/assets/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets/js/main.js"></script>
+    
+    <!-- TOAST UI 라이브러리 스크립트 -->
+    <script type="text/javascript" src="https://uicdn.toast.com/tui.pagination/v3.4.0/tui-pagination.js"></script>
+    <script src="https://uicdn.toast.com/tui.time-picker/latest/tui-time-picker.js"></script>
+    <script src="https://uicdn.toast.com/tui.date-picker/latest/tui-date-picker.js"></script>
+    <script src="https://uicdn.toast.com/grid/latest/tui-grid.js"></script>
+    
+    <!-- SweetAlert2 라이브러리 (알림창) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- 공통 JavaScript 코드 (jQuery 이후에 로드) -->
+    <script src="/js/commonJs/commonAlert.js"></script>
+    <script src="/js/commonJs/commonApi.js"></script>
+    <script src="/js/commonJs/commonUI.js"></script>
+    <script src="/js/commonJs/commonValidation.js"></script>
+    <script src="/js/commonJs/commonGrid.js"></script>
+    <script src="/js/commonJs/commonSearch.js"></script>
+    
+        <!-- ======= 개별 페이지 JavaScript ======= -->
+    <!-- 각 페이지에서 필요한 특정 스크립트를 이 블록에 추가할 수 있음 -->
+    <th:block layout:fragment="script">
+        <!-- 이 영역은 비워두세요. 각 페이지에서 이 영역을 채웁니다. -->
+    </th:block>
+
+
+    <!-- 타이틀 패턴: 각 페이지의 타이틀 + 접미사 -->
+    <!-- <title layout:title-pattern="$CONTENT_TITLE - CMT">CMT</title> -->
+
+
+</head>
+
+<body>
+    <div id="app">
+        <!-- ======= 사이드바 영역 ======= -->
+        <!-- fragments/sidebar.html의 sidebar 프래그먼트를 포함 -->
+        <div th:replace="~{fragments/sidebar::sidebar}"></div>
+
+        <!-- ======= 메인 콘텐츠 영역 ======= -->
+        <div id="main">
+            <!-- 상단 헤더 (모바일용 사이드바 토글 버튼 포함) -->
+            <header class="mb-3">
+                <a href="#" class="burger-btn d-block d-xl-none">
+                    <i class="bi bi-justify fs-3"></i>
+                </a>
+            </header>
+
+            <!-- ======= 페이지별 콘텐츠 영역 ======= -->
+            <!-- 각 페이지마다 고유한 내용이 이 영역에 삽입됨 -->
+            <div layout:fragment="content"></div>
+
+            <!-- ======= 푸터 영역 ======= -->
+            <!-- fragments/footer.html의 footer 프래그먼트를 포함 -->
+            <footer>
+                <div th:replace="~{fragments/footer::footer}"></div>
+            </footer>
+        </div>
+    </div>
+
+</body>
+</html>

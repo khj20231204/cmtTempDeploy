@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cmtProject.mapper.erp.salaries.SalariesMapper">
+  
+    <!-- 급여 지급 내역 조회 -->
+    <select id="getPayList" resultType="com.example.cmtProject.dto.erp.salaries.PaymentDTO">    	
+		SELECT
+	        P.PAY_NO                
+	        , P.PAY_DATE             
+	        , P.PAY_BASIC             
+	        , P.PAY_BONUS_OVERTIME    
+	        , P.PAY_BONUS_HOLIDAY     
+	        , P.PAY_BONUS_TOTAL       
+	        , P.PAY_TAX_PENSION       
+	        , P.PAY_TAX_CARE          
+	        , P.PAY_TAX_HEALTH        
+	        , P.PAY_TAX_EMPLOYMENT    
+	        , P.PAY_TAX_INCOME        
+	        , P.PAY_TAX_RESIDENCE     
+	        , P.PAY_TAX_TOTAL         
+	        , P.PAY_TOTAL            
+	        , E.EMP_NAME              
+	        , E.EMP_ID				
+	        , E.SAL_BANK_NAME			
+	        , E.SAL_BANK_ACCOUNT		
+	        , DN.CMN_DETAIL_NAME AS deptName
+	        , PO.CMN_DETAIL_NAME AS position
+	        , ET.CMN_DETAIL_NAME AS empType
+	    FROM PAYMENTS P
+	    LEFT JOIN EMPLOYEES E ON P.EMP_ID = E.EMP_ID
+	    LEFT JOIN COMMONCODE_DETAIL DN ON TO_CHAR(E.DEPT_NO) = DN.CMN_DETAIL_CODE
+	    LEFT JOIN COMMONCODE_DETAIL PO ON TO_CHAR(E.POSITION_NO) = PO.CMN_DETAIL_CODE
+	    LEFT JOIN COMMONCODE_DETAIL ET ON E.EMP_TYPE = ET.CMN_DETAIL_CODE
+	    <where>
+        	<if test="empId != null and empId != ''">
+            	E.EMP_ID = #{empId}
+        	</if>
+    	</where>
+    	ORDER BY P.PAY_DATE DESC
+	</select>  
+  
+  	<!-- 직급별 기본급 조회 -->
+  	<select id="getPayBasic" resultType="com.example.cmtProject.dto.erp.salaries.PayBasicDTO">
+	  	SELECT
+	    	E.EMP_ID
+	    	, E.EMP_NAME
+	    	, E.POSITION_NO
+	    	, CD.CMN_DETAIL_VALUE AS payBasic
+	    	, CD.CMN_DETAIL_NAME  AS position
+		FROM EMPLOYEES E
+		JOIN COMMONCODE_DETAIL CD ON TO_CHAR(E.POSITION_NO) = CD.CMN_DETAIL_CODE
+		WHERE CD.CMN_CODE = 'POSITION'
+  	</select>
+  	
+  	<!-- 사원 정보 조회 -->
+	<select id="getEmpInfo" resultType="com.example.cmtProject.dto.erp.salaries.PayEmpListDTO">
+	  	SELECT 
+		    E.EMP_ID
+		    , E.EMP_NAME
+		    , E.DEPT_NO
+		    , DEPT_CD.CMN_DETAIL_NAME AS DEPT_NAME
+		    , POS_CD.CMN_DETAIL_NAME  AS POSITION
+		    , POS_CD.CMN_DETAIL_VALUE AS PAYBASIC
+		    , E.EMP_TYPE
+		    , E.SAL_BANK_NAME
+		    , E.SAL_BANK_ACCOUNT
+		FROM EMPLOYEES E
+		LEFT JOIN COMMONCODE_DETAIL DEPT_CD ON TO_CHAR(E.DEPT_NO) = DEPT_CD.CMN_DETAIL_CODE
+		LEFT JOIN COMMONCODE_DETAIL POS_CD ON TO_CHAR(E.POSITION_NO) = POS_CD.CMN_DETAIL_CODE
+		WHERE E.EMP_ID IN 
+	    <foreach item="index" collection="empNoList" open="(" separator="," close=")">
+	        #{index}
+	    </foreach>
+	</select>
+	
+	<!-- 급여 지급일 조회 -->
+	<select id="getPayDay" resultType="String">
+		SELECT CMN_DETAIL_VALUE2
+		FROM COMMONCODE_DETAIL
+		WHERE CMN_DETAIL_CODE = 'PDY001'
+	</select>
+	
+	<!-- 공통 코드에서 수당, 공제 계산 하기위한 컬럼 가져오기 -->
+	<select id="getPayCommonCodeDetails" resultType="com.example.cmtProject.dto.erp.salaries.PayCmmCodeDetailDTO">
+		SELECT
+			CMN_DETAIL_CODE
+			, CMN_CODE
+			, CMN_DETAIL_VALUE
+			, CMN_DETAIL_VALUE2
+		FROM COMMONCODE_DETAIL 
+		WHERE CMN_DETAIL_CODE LIKE 'TAX%' 
+			OR CMN_DETAIL_CODE LIKE 'BNS%'
+	</select>
+	
+	<!-- 사원 목록 -->
+	<select id="getEmpList" resultType="com.example.cmtProject.dto.erp.employees.EmpListPreviewDTO">
+		SELECT 
+		    E.EMP_ID
+		    , E.EMP_NAME
+		    , DN.CMN_DETAIL_NAME AS deptName
+		    , DP.CMN_DETAIL_NAME AS deptPosition
+		FROM EMPLOYEES E
+		LEFT JOIN COMMONCODE_DETAIL DN ON TO_CHAR(E.DEPT_NO) = DN.CMN_DETAIL_CODE
+		LEFT JOIN COMMONCODE_DETAIL DP ON TO_CHAR(E.POSITION_NO) = DP.CMN_DETAIL_CODE
+		WHERE NOT EXISTS (
+			SELECT 1 
+			FROM PAYMENTS P
+			WHERE E.EMP_ID = P.EMP_ID
+		)
+	</select>
+    
+	<!-- 급여 이체 -->
+	<insert id="savePaymentMap" parameterType="java.util.Map">
+	  INSERT INTO PAYMENTS (
+			PAY_NO
+			, EMP_NAME
+			, EMP_ID
+			, DEPT_NAME
+			, POSITION
+			, EMP_TYPE
+			, PAY_DATE
+			, PAY_BASIC
+			, PAY_BONUS_OVERTIME
+			, PAY_BONUS_HOLIDAY
+			, PAY_BONUS_TOTAL
+			, PAY_TAX_PENSION
+			, PAY_TAX_CARE
+			, PAY_TAX_HEALTH
+			, PAY_TAX_EMPLOYMENT
+			, PAY_TAX_INCOME
+			, PAY_TAX_RESIDENCE
+			, PAY_TAX_TOTAL
+			, PAY_TOTAL
+			, SAL_BANK_NAME
+			, SAL_BANK_ACCOUNT 
+		) VALUES 
+		(
+			SEQ_PAYMENTS_PAY_NO.NEXTVAL
+			, #{empName, jdbcType=VARCHAR}
+			, #{empId, jdbcType=VARCHAR}
+			, #{deptName, jdbcType=VARCHAR}
+			, #{position, jdbcType=VARCHAR}
+			, #{empType, jdbcType=VARCHAR}
+			, SYSDATE
+			, #{payBasic, jdbcType=NUMERIC}
+			, ROUND(#{payBonusOvertime, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payBonusHoliday, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payBasic} + #{payBonusOvertime} + #{payBonusHoliday}, 0)
+			, ROUND(#{payTaxPension, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payTaxCare, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payTaxHealth, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payTaxEmployment, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payTaxIncome, jdbcType=NUMERIC}, 0)
+			, ROUND(#{payTaxResidence, jdbcType=NUMERIC}, 0)
+			, ROUND(
+      			#{payTaxPension} + #{payTaxCare} + #{payTaxHealth} + 
+      			#{payTaxEmployment} + #{payTaxIncome} + #{payTaxResidence}, 0)
+      		, ROUND(
+      			#{payBasic} + #{payBonusOvertime} + #{payBonusHoliday} - 
+      			(#{payTaxPension} + #{payTaxCare} + #{payTaxHealth} + 
+       				#{payTaxEmployment} + #{payTaxIncome} + #{payTaxResidence}), 0)
+       		, #{salBankName, jdbcType=VARCHAR}
+       		, #{salBankAccount, jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<!-- 급여 이체 -->	
+<!-- 	<insert id="savePaymentDto" parameterType="com.example.cmtProject.dto.erp.salaries.PaymentTempDTO">
+	</insert> -->
+ 
+    <!-- 18시 이후부터 야근수당 계산 -->
+<!--    <select id="getOverTimes" resultType="com.example.cmtProject.dto.erp.salaries.PaymentDTO">
+ 		SELECT
+    		P.EMP_ID,
+    		W.WKT_ID,
+    		ROUND(
+        		CASE 
+            		WHEN TO_CHAR(W.WKT_END_TIME, 'HH24') >= 18 
+            		THEN (W.WKT_END_TIME - TO_DATE(TO_CHAR(W.WKT_DATE, 'YYYY-MM-DD') || ' 18:00:00', 'YYYY-MM-DD HH24:MI:SS')) * 24
+            		ELSE 0
+        		END
+        			* TO_NUMBER(C1.CMN_DETAIL_VALUE2) 
+        		) AS payBonusOvertime
+    	FROM PAYMENTS P
+    	LEFT JOIN WORK_TIMES W ON P.EMP_ID = W.EMP_NO
+    	LEFT JOIN COMMONCODE_DETAIL C1 ON C1.CMN_CODE = 'POSITION' AND C1.CMN_DETAIL_CODE = TO_CHAR(E.POSITION_NO)
+    	LEFT JOIN COMMONCODE_DETAIL C2 ON TO_CHAR(E.DEPT_NO) = C2.CMN_DETAIL_CODE
+    	<where>
+    		<if test="payDay != null">
+            	AND W.WKT_DATE BETWEEN TRUNC(ADD_MONTHS(#{payDay}, -1), 'MM') 
+                	AND LAST_DAY(ADD_MONTHS(#{payDay}, -1))
+            </if>
+        	<if test="deptName != null and deptName != ''">
+            	AND C2.CMN_DETAIL_NAME = #{deptName}
+        	</if>  
+        	<if test="empId != null and empId != ''">
+            	AND P.EMP_ID = #{empId}
+        	</if>        	              
+    	</where> 
+    </select>-->
+    
+    <!-- 미지급자 조회 -->
+    <select id="findUnpaidEmployees" resultType="com.example.cmtProject.dto.erp.salaries.PayEmpListDTO">
+	    SELECT 
+	    	E.EMP_ID
+	    	, E.EMP_NAME
+	    	, E.DEPT_NO
+	    	, D.CMN_DETAIL_NAME AS DEPT_NAME
+	    	, E.POSITION_NO
+	    	, P.CMN_DETAIL_NAME AS POSITION
+	    FROM EMPLOYEES E
+	    LEFT JOIN COMMONCODE_DETAIL D ON TO_CHAR(E.DEPT_NO) = D.CMN_DETAIL_CODE
+	    LEFT JOIN COMMONCODE_DETAIL P ON TO_CHAR(E.POSITION_NO) = P.CMN_DETAIL_CODE
+	    WHERE E.EMP_ID NOT IN (
+	        SELECT EMP_ID
+	        FROM PAYMENTS
+	        WHERE PAY_DATE BETWEEN TO_DATE(#{payMonth} || '-01', 'YYYY-MM-DD')
+            	AND LAST_DAY(TO_DATE(#{payMonth} || '-01', 'YYYY-MM-DD'))
+	    )    	
+    </select>
+	
+	<!-- 월별 급여대장 간략 조회 -->
+	<select id="getMonthlyPayrollSummaryList" resultType="com.example.cmtProject.dto.erp.salaries.PaymentDTO">
+		SELECT
+			TO_CHAR(P.PAY_DATE, 'YYYY-MM') AS payMonth
+			, COUNT(DISTINCT P.EMP_ID)     AS empCount
+			, SUM(P.PAY_TOTAL)             AS totalPayAmount
+			, SUM(P.PAY_BONUS_TOTAL)       AS totalBonusAmount
+			, SUM(P.PAY_TAX_TOTAL)         AS totalTaxAmount
+		FROM PAYMENTS P
+		JOIN EMPLOYEES E ON P.EMP_ID = E.EMP_ID
+		LEFT JOIN COMMONCODE_DETAIL CD ON E.DEPT_NO = CD.CMN_DETAIL_CODE
+		GROUP BY TO_CHAR(P.PAY_DATE, 'YYYY-MM')
+		ORDER BY TO_CHAR(P.PAY_DATE, 'YYYY-MM') DESC
+	</select>
+	
+	<!-- 월별 급여대장 - 급여 현황 -->
+	<select id="getMonthlyDeptPayrollList" resultType="com.example.cmtProject.dto.erp.salaries.PaymentDTO">
+		SELECT
+	        P.PAY_DATE              
+	        , P.PAY_BASIC             
+	        , P.PAY_BONUS_OVERTIME    
+	        , P.PAY_BONUS_HOLIDAY     
+	        , P.PAY_BONUS_TOTAL     
+	        , P.PAY_TAX_PENSION     
+	        , P.PAY_TAX_CARE        
+	        , P.PAY_TAX_HEALTH      
+	        , P.PAY_TAX_EMPLOYMENT   
+	        , P.PAY_TAX_INCOME        
+	        , P.PAY_TAX_RESIDENCE     
+			, P.PAY_TAX_TOTAL       
+			, P.PAY_TOTAL            
+			, E.EMP_NAME             
+			, E.EMP_ID				
+			, DN.CMN_DETAIL_NAME AS deptName
+			, PO.CMN_DETAIL_NAME AS position
+	    FROM PAYMENTS P
+	    LEFT JOIN EMPLOYEES E ON P.EMP_ID = E.EMP_ID
+	    LEFT JOIN COMMONCODE_DETAIL DN ON TO_CHAR(E.DEPT_NO) = DN.CMN_DETAIL_CODE
+	    LEFT JOIN COMMONCODE_DETAIL PO ON TO_CHAR(E.POSITION_NO) = PO.CMN_DETAIL_CODE
+		WHERE TO_CHAR(P.PAY_DATE, 'YYYY-MM') = #{payMonth}  	
+	</select>
+
+	<!-- 월별 급여대장 - 전 직원 급여 합계 -->
+	<select id="getMonthlyPayrollTotalList" resultType="java.util.Map">
+		SELECT
+			NVL(SUM(PAY_BASIC), 0)            AS payBasic
+			, NVL(SUM(PAY_BONUS_OVERTIME), 0) AS payBonusOvertime
+			, NVL(SUM(PAY_BONUS_HOLIDAY), 0)  AS payBonusHoliday
+			, NVL(SUM(PAY_BONUS_TOTAL), 0)    AS totalBonusAmount
+			, NVL(SUM(PAY_TAX_PENSION), 0)    AS payTaxPension
+			, NVL(SUM(PAY_TAX_HEALTH), 0)     AS payTaxHealth
+			, NVL(SUM(PAY_TAX_CARE), 0)       AS payTaxCare
+			, NVL(SUM(PAY_TAX_EMPLOYMENT), 0) AS payTaxEmployment
+			, NVL(SUM(PAY_TAX_INCOME), 0)     AS payTaxIncome
+			, NVL(SUM(PAY_TAX_RESIDENCE), 0)  AS payTaxResidence
+			, NVL(SUM(PAY_TAX_TOTAL), 0)      AS totalTaxAmount
+			, NVL(SUM(PAY_TOTAL), 0)          AS totalPayAmount
+		FROM PAYMENTS
+		WHERE TO_CHAR(PAY_DATE, 'YYYY-MM') = #{payMonth}
+	</select>
+	
+	<!-- 연간 급여대장 -->
+	<select id="selectYearlyPayrollList" resultType="map">
+		SELECT 
+	        TO_CHAR(PAY_DATE, 'YYYY-MM') AS payMonth
+	        , SUM(PAY_BASIC)             AS payBasic
+	        , SUM(PAY_BONUS_OVERTIME)    AS payBonusOvertime
+	        , SUM(PAY_BONUS_HOLIDAY)     AS payBonusHoliday
+	        , SUM(PAY_BONUS_TOTAL)       AS totalBonusAmount
+	        , SUM(PAY_TAX_PENSION)       AS payTaxPension
+	        , SUM(PAY_TAX_HEALTH)        AS payTaxHealth
+	        , SUM(PAY_TAX_CARE)          AS payTaxCare
+	        , SUM(PAY_TAX_EMPLOYMENT)    AS payTaxEmployment
+	        , SUM(PAY_TAX_INCOME)        AS payTaxIncome
+	        , SUM(PAY_TAX_RESIDENCE)     AS payTaxResidence
+	        , SUM(PAY_TAX_TOTAL)         AS totalTaxAmount
+	        , SUM(PAY_TOTAL)             AS totalPayAmount
+	    FROM PAYMENTS
+	    WHERE TO_CHAR(PAY_DATE, 'YYYY') = #{payYear}
+	    GROUP BY TO_CHAR(PAY_DATE, 'YYYY-MM')
+	    ORDER BY payMonth
+	</select>
+	
+	<!-- 연간 급여대장 - 연도 가져오기 -->
+	<select id="getYears" resultType="int">
+	    SELECT DISTINCT TO_NUMBER(TO_CHAR(PAY_DATE, 'YYYY')) AS year
+        FROM PAYMENTS
+        ORDER BY year DESC
+	</select>
+	
+	<!-- 개인 지급내역 -->
+	<select id="selectEmpPayment" resultType="com.example.cmtProject.dto.erp.salaries.PaymentDTO">
+		SELECT
+			P.*
+			, E.EMP_NAME
+			, E.EMP_ID
+			, E.EMP_TYPE
+			, E.SAL_BANK_NAME
+			, E.SAL_BANK_ACCOUNT
+			, D.CMN_DETAIL_NAME  AS deptName
+			, PO.CMN_DETAIL_NAME AS position
+		FROM PAYMENTS P
+		JOIN EMPLOYEES E ON P.EMP_ID = E.EMP_ID
+		LEFT JOIN COMMONCODE_DETAIL D ON TO_CHAR(E.DEPT_NO) = D.CMN_DETAIL_CODE AND D.CMN_CODE = 'DEPT'
+		LEFT JOIN COMMONCODE_DETAIL PO ON TO_CHAR(E.POSITION_NO) = PO.CMN_DETAIL_CODE AND PO.CMN_CODE = 'POSITION'
+		WHERE E.EMP_ID = #{empId}
+	</select>
+	
+</mapper>

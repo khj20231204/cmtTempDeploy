@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>인사카드</title>
+    <style>
+        * {
+            font-family: 'NanumGothic', sans-serif;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            font-size: 10pt;
+        }
+        .container {
+            width: 100%;
+            max-width: 21cm;
+            margin: 0 auto;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .info-section {
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            width: 25%;
+        }
+        .photo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .photo img {
+            max-height: 120px;
+        }
+        .signature {
+            text-align: center;
+            margin-top: 40px;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>[<span th:text="${emp.empName}"></span>] 인사카드</h2>
+
+<!--     <div class="photo"> -->
+<!--         <img th:src="@{'/images/' + ${emp.empProfile}}" th:if="${emp.empProfile != null}" alt="사진"> -->
+<!--         <img th:src="@{/images/profile_preview.png}" th:if="${emp.empProfile == null}" alt="사진"> -->
+<!--     </div> -->
+
+    <div class="info-section">
+        <table>
+            <tr><th>사원번호</th><td th:text="${emp.empId}"></td></tr>
+            <tr><th>이름</th><td th:text="${emp.empName}"></td></tr>
+            <tr><th>부서</th><td th:text="${emp.deptName}"></td></tr>
+            <tr><th>직급</th><td th:text="${emp.deptPosition}"></td></tr>
+            <tr><th>사원권한</th><td th:text="${emp.empLevel}"></td></tr>
+            <tr><th>전화번호</th><td th:text="${emp.empPhone}"></td></tr>
+            <tr><th>이메일</th><td th:text="${emp.empEmail}"></td></tr>
+            <tr><th>생년월일</th><td th:text="${emp.empBirthday}"></td></tr>
+            <tr><th>입사일</th><td th:text="${emp.empStartDate}"></td></tr>
+            <tr><th>성별</th><td th:text="${emp.empGender}"></td></tr>
+            <tr><th>결혼여부</th><td th:text="${emp.empMaritalStatus}"></td></tr>
+            <tr><th>주소</th><td th:text="${emp.empAddress1} + ' ' + ${emp.empAddress2}"></td></tr>
+            <tr><th>우편번호</th><td th:text="${emp.empPostCode}"></td></tr>
+            <tr><th>재직상태</th><td th:text="${emp.empStatus}"></td></tr>
+            <tr><th>퇴사일</th><td th:text="${emp.empEndDate}"></td></tr>
+            <tr><th>고용유형</th><td th:text="${emp.empType}"></td></tr>
+            <tr><th>학력</th><td th:text="${emp.empEducationLevel}"></td></tr>
+            <tr><th>주차등록</th><td th:text="${emp.empParkingStatus}"></td></tr>
+            <tr><th>차량번호</th><td th:text="${emp.empCarNumber}"></td></tr>
+            <tr><th>은행</th><td th:text="${emp.salBankName}"></td></tr>
+            <tr><th>계좌번호</th><td th:text="${emp.salBankAccount}"></td></tr>
+        </table>
+    </div>
+    
+    <div class="signature">
+       <p th:text="${#temporals.format(today, 'yyyy년 MM월 dd일')}"></p>
+
+       <p>주식회사 CMT.</p>
+    </div>
+</div>
+</body>
+</html>

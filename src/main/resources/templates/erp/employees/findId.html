@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"> 
+
+    <!-- 기본 메타 정보 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMT</title>
+    
+    <!-- 파비콘 -->
+    <link rel="shortcut icon" href="/assets/images/logo/favicon.png" type="image/x-icon">
+    
+    <!-- 스타일시트 - 기존 경로 유지 -->
+   <link rel="stylesheet" href="/assets/css/bootstrap.css">
+    <link rel="stylesheet" href="/assets/vendors/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="/assets/css/app.css">
+     <!-- auth.css 스타일 -->
+    <link rel="stylesheet" href="assets/css/pages/auth.css">
+    <script src="/js/jquery-3.7.1.js" defer></script>
+  
+</head>
+	
+<body>
+    <script src="assets/static/js/initTheme.js"></script>
+    <div id="auth">
+        
+	<div class="row h-100">
+	    <div class="col-lg-5 col-12">
+	        <div id="auth-left">
+	            <h1 class="auth-title">아이디 찾기</h1>
+	            <p class="auth-subtitle mb-5">아이디를 찾기위해 이름과 이메일을 작성해주세요.</p>
+	
+	            <form action="/emp/finfId" method="POST">
+	                <div class="form-group position-relative has-icon-left mb-4">
+	                    <input type="text" class="form-control form-control-xl" id="empName" name ="empName" placeholder="이름" required><br>
+	                    <input type="text" class="form-control form-control-xl" id="empEmail" name ="empEmail" placeholder="이메일" required>
+	                    <div class="form-control-icon">
+	                        <i class="bi bi-envelope"></i>
+	                    </div>
+	                </div>
+	                <button type="button" class="btn btn-primary btn-block btn-lg shadow-lg mt-5" onclick="findId()">아이디 찾기</button>
+	            </form>
+	            
+	            
+	            <h3 id="idPreview" class=""></h3>
+	            <div class="text-center mt-5 text-lg fs-4">
+	                <p class='text-gray-600'>아이디가 기억 나셨나요? <a href="/login" class="font-bold">Log in</a>
+	                </p>
+	            </div>
+	        </div>
+	    </div>
+	    <div class="col-lg-7 d-none d-lg-block">
+	        <div id="auth-right">
+	
+	        </div>
+	    </div>
+	</div>
+
+    </div>	
+    
+</body>
+    <script src="/js/jquery-3.7.1.js"></script>
+	<script type="text/javascript">
+		function findId(){
+			const empName = $('#empName').val();
+		    const empEmail = $('#empEmail').val();
+
+		    if(empName === '') {
+		        $('#idPreview').text("아이디를 입력하세요.");
+		        return;
+		    }
+		    
+			$.ajax({
+				url : '/emp/findId',
+				method : 'post',
+				data : {empName : empName , empEmail : empEmail},
+				success : function(response){
+					 console.log("response.success 값 =", response.success, "타입 =", typeof response.success , response);
+				if(response.SUCCESS === true) {
+					 $('#idPreview').text("회원님의 아이디는 [ " + response.EMP_ID + " ] 입니다.").css('color', 'green');;
+					 console.log(empName, empEmail,response);
+                } else {
+                    $('#idPreview').text("일치하는 회원정보가 없습니다.");
+				}
+				},
+			   error: function() {
+	                alert('서버 오류 발생');
+	            }
+			});
+			
+			
+			
+		}
+
+
+
+
+
+
+	</script>
+
+</html>

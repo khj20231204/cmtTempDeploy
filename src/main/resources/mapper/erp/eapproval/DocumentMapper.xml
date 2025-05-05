@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.cmtProject.mapper.erp.eapproval.DocumentMapper">
+
+    <!-- 문서 저장 -->
+    <insert id="insertDocument" parameterType="com.example.cmtProject.dto.erp.eapproval.DocumentDTO">
+        INSERT INTO DOCUMENTS (
+            DOC_ID, DOC_NUMBER, FORM_ID, TITLE, CONTENT,
+            DRAFTER_ID, DRAFT_DEPT, DRAFT_DATE, DOC_STATUS, IS_TEMP_SAVED
+        ) VALUES (
+            #{docId, jdbcType=VARCHAR}, #{docNumber, jdbcType=VARCHAR}, #{formId, jdbcType=VARCHAR},
+            #{title, jdbcType=VARCHAR}, #{content, jdbcType=CLOB},
+            #{drafterId, jdbcType=VARCHAR}, #{draftDept, jdbcType=VARCHAR},
+            SYSDATE, #{docStatus, jdbcType=VARCHAR}, #{isTempSaved, jdbcType=CHAR}
+        )
+    </insert>
+
+    <!-- 문서 정보 수정 -->
+    <update id="updateDocument" parameterType="com.example.cmtProject.dto.erp.eapproval.DocumentDTO">
+        UPDATE DOCUMENTS
+        SET
+            TITLE = #{title},
+            CONTENT = #{content},
+            FORM_ID = #{formId},
+            DOC_STATUS = #{docStatus},
+            IS_TEMP_SAVED = #{isTempSaved},
+            UPDATE_DATE = SYSDATE
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR}
+    </update>
+
+    <!-- 문서 상태 변경 -->
+    <update id="updateDocumentStatus">
+        UPDATE DOCUMENTS
+        SET
+            DOC_STATUS = #{docStatus},
+            UPDATE_DATE = SYSDATE
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR}
+    </update>
+
+    <!-- 문서 결재일자 업데이트 -->
+    <update id="updateApprovalDate">
+        UPDATE DOCUMENTS
+        SET
+            APPROVAL_DATE = #{approvalDate},
+            UPDATE_DATE = SYSDATE
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR}
+    </update>
+
+    <!-- 문서 조회 -->
+    <select id="selectDocumentById" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE, d.CONTENT,
+            d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+            d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+            d.DRAFT_DATE, d.DOC_STATUS, d.APPROVAL_DATE, d.IS_TEMP_SAVED, d.UPDATE_DATE
+        FROM DOCUMENTS d
+        LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+        LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+        WHERE d.DOC_ID = #{docId, jdbcType=VARCHAR}
+    </select>
+
+    <!-- 기안자별 문서 목록 -->
+    <select id="selectDocumentsByDrafterId" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+            d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+            d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+            d.DRAFT_DATE, d.DOC_STATUS, d.IS_TEMP_SAVED, d.APPROVAL_DATE
+        FROM DOCUMENTS d
+        LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+        LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+        WHERE d.DRAFTER_ID = #{drafterId, jdbcType=VARCHAR}
+        ORDER BY d.DRAFT_DATE DESC
+    </select>
+
+    <!-- 기안자 + 상태별 문서 목록 -->
+    <select id="selectDocumentsByDrafterAndStatus" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+            d.DRAFT_DATE, d.DOC_STATUS, d.APPROVAL_DATE
+        FROM DOCUMENTS d
+        WHERE d.DRAFTER_ID = #{drafterId, jdbcType=VARCHAR}
+          AND d.DOC_STATUS = #{status}
+        ORDER BY d.DRAFT_DATE DESC
+    </select>
+
+    <!-- 상태별 문서 목록   사용자 없으면 삭제 처리예정-->
+    <select id="selectDocumentsByStatus" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+            d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+            d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+            d.DRAFT_DATE, d.DOC_STATUS
+        FROM DOCUMENTS d
+        LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+        LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+        WHERE d.DOC_STATUS = #{docStatus}
+        ORDER BY d.DRAFT_DATE DESC
+    </select>
+    
+    <!-- 상태별 문서 목록 (특정 사용자 관련 문서만) -->
+	<select id="selectDocumentsByStatusAndRelatedUser" resultMap="documentResultMap">
+	    SELECT DISTINCT
+	        d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+	        d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+	        d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+	        d.DRAFT_DATE, d.DOC_STATUS
+	    FROM DOCUMENTS d
+	    LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+	    LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+	    LEFT JOIN APPROVAL_LINES a ON d.DOC_ID = a.DOC_ID
+	    WHERE d.DOC_STATUS = #{docStatus}
+	    AND (
+	        d.DRAFTER_ID = #{userId}
+	        OR a.APPROVER_ID = #{userId}
+	    )
+	    ORDER BY d.DRAFT_DATE DESC
+	</select>
+
+    <!-- 결재자별 대기 문서 목록 (결재순서 고려) -->
+    <select id="selectPendingDocumentsByApproverId" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+            d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+            d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+            d.DRAFT_DATE, d.DOC_STATUS
+        FROM DOCUMENTS d
+        JOIN APPROVAL_LINES a ON d.DOC_ID = a.DOC_ID
+        LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+        LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+        WHERE a.APPROVER_ID = #{approverId, jdbcType=VARCHAR}
+          AND a.APPROVAL_STATUS = '대기'
+          AND d.DOC_STATUS = '진행중'
+          AND (
+              a.APPROVAL_ORDER = 1
+              OR NOT EXISTS (
+                  SELECT 1
+                  FROM APPROVAL_LINES prev
+                  WHERE prev.DOC_ID = a.DOC_ID
+                    AND prev.APPROVAL_ORDER &lt; a.APPROVAL_ORDER
+                    AND prev.APPROVAL_STATUS != '승인'
+              )
+          )
+        ORDER BY d.DRAFT_DATE DESC
+    </select>
+
+    <!-- 결재 가능한 문서 목록 (중복됨) -->
+    <select id="selectProcessableDocumentsByApproverId" resultMap="documentResultMap">
+        SELECT
+            d.DOC_ID, d.DOC_NUMBER, d.FORM_ID, d.TITLE,
+            d.DRAFTER_ID, e.EMP_NAME AS DRAFTER_NAME,
+            d.DRAFT_DEPT, c.CMN_DETAIL_NAME AS DRAFT_DEPT_NAME,
+            d.DRAFT_DATE, d.DOC_STATUS, a.APPROVAL_ORDER
+        FROM DOCUMENTS d
+        JOIN APPROVAL_LINES a ON d.DOC_ID = a.DOC_ID
+        LEFT JOIN EMPLOYEES e ON d.DRAFTER_ID = e.EMP_ID
+        LEFT JOIN COMMONCODE_DETAIL c ON d.DRAFT_DEPT = c.CMN_DETAIL_CODE
+        WHERE a.APPROVER_ID = #{approverId, jdbcType=VARCHAR}
+          AND a.APPROVAL_STATUS = '대기'
+          AND d.DOC_STATUS = '진행중'
+          AND (
+              a.APPROVAL_ORDER = 1
+              OR NOT EXISTS (
+                  SELECT 1
+                  FROM APPROVAL_LINES prev
+                  WHERE prev.DOC_ID = a.DOC_ID
+                    AND prev.APPROVAL_ORDER &lt; a.APPROVAL_ORDER
+                    AND prev.APPROVAL_STATUS != '승인'
+              )
+          )
+        ORDER BY d.DRAFT_DATE DESC
+    </select>
+
+    <!-- 문서 시퀀스 조회 -->
+    <select id="selectDocumentSequence" resultType="int">
+        SELECT DOCUMENT_SEQ.NEXTVAL FROM DUAL
+    </select>
+
+    <!-- 문서 삭제 -->
+    <delete id="deleteDocument">
+        DELETE FROM DOCUMENTS
+        WHERE DOC_ID = #{docId, jdbcType=VARCHAR}
+          AND IS_TEMP_SAVED = 'Y'
+    </delete>
+
+    <!-- 직원 부서 코드 조회 -->
+    <select id="selectEmployeeDeptCodeByEmpId" resultType="java.lang.String">
+        SELECT DEPT_NO
+        FROM EMPLOYEES
+        WHERE EMP_ID = #{empId, jdbcType=VARCHAR}
+    </select>
+    
+    <!-- 부서 코드로 부서명 조회 -->
+	<select id="selectDeptNameByDeptCode" resultType="java.lang.String">
+	    SELECT CMN_DETAIL_NAME 
+	    FROM COMMONCODE_DETAIL
+	    WHERE CMN_CODE = 'DEPT' 
+	    AND CMN_DETAIL_CODE = #{deptCode}
+	</select>
+
+	<!-- 직위 번호로 직위명 조회 -->
+	<select id="selectPositionNameByPositionNo" resultType="java.lang.String">
+	    SELECT CMN_DETAIL_NAME 
+	    FROM COMMONCODE_DETAIL
+	    WHERE CMN_CODE = 'POSITION' 
+	    AND CMN_DETAIL_CODE = TO_CHAR(#{positionNo})
+	</select>
+	
+	<select id="selectCount" resultType="int">
+		SELECT COUNT(*)
+	    FROM DOCUMENTS d
+	    JOIN APPROVAL_LINES a ON d.DOC_ID = a.DOC_ID
+	    WHERE a.APPROVER_ID = #{empId}
+	      AND a.APPROVAL_STATUS = '대기'
+	      AND d.DOC_STATUS = '진행중'
+	      AND (
+	           a.APPROVAL_ORDER = 1
+	           OR NOT EXISTS (
+	               SELECT 1
+	               FROM APPROVAL_LINES prev
+	               WHERE prev.DOC_ID = a.DOC_ID
+	                 AND prev.APPROVAL_ORDER &lt; a.APPROVAL_ORDER
+	                 AND prev.APPROVAL_STATUS != '승인'
+	           )
+	      )
+	
+	</select>
+	
+	<select id="myDraftCount">
+		SELECT
+			COUNT(d.TITLE)
+		FROM DOCUMENTS d
+		WHERE d.DRAFTER_ID = #{empId}
+		  AND d.DOC_STATUS = '진행중'
+		ORDER BY d.DRAFT_DATE DESC
+	
+	</select>
+    
+
+    <!-- ResultMap -->
+    <resultMap id="documentResultMap" type="com.example.cmtProject.dto.erp.eapproval.DocumentDTO">
+        <id property="docId" column="DOC_ID"/>
+        <result property="docNumber" column="DOC_NUMBER"/>
+        <result property="formId" column="FORM_ID"/>
+        <result property="title" column="TITLE"/>
+        <result property="content" column="CONTENT"/>
+        <result property="drafterId" column="DRAFTER_ID"/>
+        <result property="drafterName" column="DRAFTER_NAME"/>
+        <result property="draftDept" column="DRAFT_DEPT"/>
+        <result property="draftDeptName" column="DRAFT_DEPT_NAME"/>
+        <result property="draftDate" column="DRAFT_DATE"/>
+        <result property="docStatus" column="DOC_STATUS"/>
+        <result property="approvalDate" column="APPROVAL_DATE"/>
+        <result property="isTempSaved" column="IS_TEMP_SAVED"/>
+        <result property="updateDate" column="UPDATE_DATE"/>
+    </resultMap>
+
+</mapper>

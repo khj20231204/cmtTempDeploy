@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<!-- Thymeleaf 및 레이아웃 선언 - 레이아웃 구조를 사용하기 위한 필수 선언 -->
+	<html xmlns:th="http://www.thymeleaf.org" 
+	      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	      layout:decorate="~{layouts/layout}">
+<head>
+	<link rel="shortcut icon" href="/assets/images/logo/favicon.png"
+	type="image/x-icon">
+    <!-- 기본 메타 정보 -->
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- xlsx.js (필수 의존성) -->
+	<!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>-->
+	<!-- 최신 xlsx 스크립트 CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	<title>CMT</title>
+<style>
+    /* 상단 입력 그룹: 검색 및 버튼들을 가로로 배치하며 필요시 줄바꿈 허용 */
+    .top-input-group {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    /* 검색 및 파일 관련 그룹: 가로 배치, 줄바꿈 가능 */
+    .search-file-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex: 1 1 auto;
+        min-width: 500px;
+    }
+
+    /* 엑셀 버튼 포함 그룹: 오른쪽 정렬 */
+    .section-header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-top: 20px;
+		margin-bottom: 15px;
+    }
+	
+	/* 섹션 제목 텍스트 스타일 */
+	.section-title {
+	    margin: 0;
+	    font-size: 1.25rem;
+	    font-weight: bold;
+	}
+
+    /* CRUD 버튼 그룹: 버튼을 가로로 배치, 줄바꿈 허용 */
+    .button-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    /* 일반 입력창 스타일: 최대 너비 설정, 반응형 대응 */
+    .form-control {
+        max-width: 200px;
+        flex: 0 1 auto;
+    }
+
+    /* 파일 업로드 입력창 스타일 */
+    .file-input {
+        max-width: 280px;
+        flex: 0 1 auto;
+    }
+
+    /* 엑셀 업로드/다운로드 버튼 스타일 */
+    .btn-excel {
+        background-color: #1D6F42;
+        color: white;
+        white-space: nowrap;
+    }
+
+    /* 엑셀 버튼 호버 시 스타일 */
+    .btn-excel:hover {
+        background-color: #15562F;
+        color: white;
+    }
+
+    /* 테이블 전체 스타일 */
+    .table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    /* 첫 번째 열(선택 체크박스)의 너비와 정렬 */
+    th:first-child,
+    td:first-child {
+        width: 40px;
+        text-align: center;
+    }
+
+    /* TOAST UI Grid의 비활성 셀 스타일 */
+    .tui-grid-cell-disabled {
+        background-color: #fff !important;
+        color: #212529 !important;
+    }
+
+    /* 반응형: 화면이 좁을 때의 처리 */
+    @media (max-width: 768px) {
+        .top-input-group {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .search-file-group,
+        .button-group {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        /* 모바일에서도 유지되도록 중복 정의 가능 */
+        .search-file-group2 {
+            justify-content: flex-end;
+        }
+    }
+</style>
+	
+</head>
+<body>
+	<div layout:fragment="content">
+	<h3>제조 계획</h3>
+	
+		<!-- 제조 계획 정보 섹션 -->
+		<section class="section">
+			<div class="row" id="basic-table">
+				<!-- 제조 계획 정보 그리드 카드 -->
+				<div class="col-12 col-md-12">
+					<div class="card">
+						<div class="card-header">
+							<h4 class="card-title">제조 계획</h4>
+
+							<!-- 검색 및 CRUD 버튼 -->
+							<div class="top-input-group">
+								<!-- 왼쪽: 검색 관련 -->
+								<div class="search-file-group">
+									<input type="text" class="form-control" id="searchInput"
+										placeholder="제조 계획 검색">
+									<button type="button" id="msSearchBtn" class="btn btn-outline-primary">
+										<i class="bi bi-search"></i>
+									</button>
+
+									<!-- 로그인한 사용자 ID -->
+									<input type="hidden" id="currentUserId" th:value="${#authentication.name}" />
+
+								</div>
+
+								<!-- 오른쪽: CRUD 버튼 -->
+								<div class="button-group">
+									<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mfgScheduleModal" sec:authorize="hasRole('ROLE_ADMIN')">
+										<i class="bi bi-clipboard-check"></i> 제조 계획 등록</button>
+									<button type="button" id="msDeleteBtn" class="btn btn-outline-danger" onclick="deleteMs()" sec:authorize="hasRole('ROLE_ADMIN')">
+										<i class="bi bi-x-circle"></i> 삭제</button>
+								</div>
+							</div>
+						</div>
+						<div class="card-body">
+							<div class="table-responsive">
+								
+								<!-- 제조 계획 그리드 -->
+								<div id="mfgScheduleGrid"></div>
+								
+								<!-- 엑셀 관련 -->
+								<div class="section-header-row">
+									<h5 class="section-title">제조 상세 계획</h5>
+									<!-- 엑셀 파일 입력 및 버튼 -->
+									<button type="button" id="ExcelDownBtn" class="btn btn-excel" sec:authorize="hasRole('ROLE_ADMIN')">
+										<i class="bi bi-file-earmark-arrow-down"></i> 엑셀 다운로드
+									</button>
+								</div>
+							
+								<!-- 제조 상세 계획 그리드 -->								
+								<div id="msDetailGrid"></div>
+								
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+		
+	<!-- 제조 계획 등록 모달 창 시작 -->
+	<div class="modal fade" id="mfgScheduleModal" tabindex="-1" aria-labelledby="mfgScheduleModalLabel" aria-hidden="true">
+	    <div class="modal-dialog modal-full">
+	        <div class="modal-content">
+	            <div class="modal-header">
+	                <h5 class="modal-title" id="mfgScheduleModalLabel">제조 계획 등록</h5>
+	                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+	            </div>
+	            <div class="modal-body">
+					
+					<!-- 제조 계획 등록 그리드 -->
+	            	<div id="mpGrid"></div>
+					
+				</div>
+	            <div class="modal-footer">
+	                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+	                <button type="button" id="mfgScheduleRegiBtn" class="btn btn-primary">등록</button>
+		        </div>
+	        </div> <!-- modal-content -->
+	    </div><!-- modal-dialog modal-full -->
+	</div><!-- modal -->
+	<!-- 모달 끝 -->
+
+	<!-- 
+        페이지별 JavaScript 추가 영역.
+        여기에 페이지에서 사용할 스크립트를 작성하세요.
+        공통 스크립트는 레이아웃에서 자동으로 포함됩니다.
+    -->	
+	<script th:inline="javascript">
+	
+	// 생산 계획 내역 그리드 시작 (그리드 상단) ============================================
+	
+	// 상태 색상 지정
+	const statusColorMap = {
+	  '등록': 'badge bg-primary', 
+	  '대기중': 'badge bg-secondary', 
+	  '제조중': 'badge bg-warning',
+	  '완료': 'badge bg-success'
+	};	
+		
+	// 제조 계획 내역 그리드 생성
+	let msList = /*[[${msList}]]*/ [];
+	
+	let mfgScheduleGrid = new tui.Grid({
+        el: document.getElementById('mfgScheduleGrid'), 
+		data: msList,
+        rowHeaders: ['checkbox'], 
+		scrollX: true,
+        scrollY: true,
+		pageOptions: {
+		   useClient: true,   // 클라이언트 사이드 페이징 사용
+		   perPage: 10        // 페이지당 행 수
+		 },
+        columns: [
+			{
+				header: '제조계획번호',
+				name: 'msNo',
+				width: 100,
+				sortable: true,
+				align: "center" 
+            },
+			{
+				header: '제조계획코드',
+				name: 'msCode',
+				width: 200,
+				sortable: true, 
+				filter: 'text',
+				align: "center" 
+            },
+           {
+                header: '생산계획코드',
+                name: 'mpCode',
+				width: 200,
+				sortable: true, 
+				filter: 'text',
+				align: "center" 
+            },
+            {
+				header: '제조계획상태',
+                name: 'msStatus',
+				width: 150,
+				sortable: true,
+				align: 'center',
+				editor: false,
+				formatter: function({ value }) {
+			          const bgClass = statusColorMap[value] || 'bg-secondary';
+			          return `
+			            <span class="badge ${bgClass}" 
+			                  style="font-size: 0.875rem; padding: 0.25rem 0.5rem; border-radius: 0.2rem; font-weight: 500;">
+			              ${value}
+			            </span>
+			          `;
+			    }
+            },
+			{
+                header: '우선순위',
+                name: 'mpPriority',
+				width: 150,
+				sortable: true,
+				align: 'center',
+				editor: false
+            },
+			{
+                header: '제품코드',
+                name: 'pdtCode',
+				width: 150,
+				fontSize: '40',
+				sortable: true, 
+				filter: 'text',
+				align: 'center',
+				editor: false
+            },
+			{
+                header: '제품명',
+                name: 'pdtName',
+				width: 150,
+				fontSize: '40',
+				sortable: true, 
+				filter: 'text',
+				align: 'center',
+				editor: false
+            },
+            {
+				header: '주문수량',
+                name: 'soQty',
+				width: 100,
+				sortable: true,
+				align: 'center',
+				editor: false
+            },
+            {
+                header: '주문단위',
+                name: 'qtyUnitName',
+				width: 100,
+				sortable: true,
+				align: "center" 
+            },
+			{
+                header: '등록사원번호',
+                name: 'empId',
+				width: 100,
+				sortable: true,
+				align: "center",
+				editor: false
+            },
+			{
+                header: '등록사원명',
+                name: 'empName',
+				width: 100,
+				sortable: true,
+				filter: 'text',
+				align: "center",
+				editor: false
+            },
+			{
+                header: '등록일자',
+                name: 'msCreatedAt',
+				width: 200,
+				sortable: true, 
+				filter: 'text',
+				align: 'center',
+				editor: false
+            },
+			{
+                header: '수정일자',
+                name: 'msUpdatedAt',
+				width: 200,
+				sortable: true, 
+				filter: 'text',
+				align: 'center',
+				editor: false
+            }
+        ], // 열 설정
+		autoEdit: true,
+		editingEvent: 'dblclick' 
+    });
+	// 제조 계획 내역 그리드 끝 (그리드 상단) =============================================
+	
+	
+	// 제조 상세 계획 내역 그리드 시작 (그리드 하단) ======================================
+	let selectedEv = null;
+	
+	// 클릭시 제품 선택 값의 BOM을 하단 그리드에 출력
+	mfgScheduleGrid.on('click', ev => {
+		if(selectedEv !== null){
+			mfgScheduleGrid.removeRowClassName(selectedEv.rowKey, 'selectedRowClass');
+		}
+		
+		selectedEv = ev;
+		mfgScheduleGrid.addRowClassName(selectedEv.rowKey, 'selectedRowClass');
+		
+		// 클릭해서 하단 제조 계획 상세에 선택된 제조 정보 출력
+		let evValue = ev;
+
+		let rk = evValue.rowKey;
+		let rowData = mfgScheduleGrid.getRow(rk);
+		let msCode = rowData.msCode;
+		
+		// 제조 계획 그리드에서 선택된 제품에 해당하는 제조 계획 상세 데이터 불러오기
+		$.ajax({
+		url: `/ms/detail`, 
+        type: 'GET',
+        data: { msCode: msCode },
+        success: function (response) {
+			if (response.success) {
+				const msData = response.data;
+				msDetailGrid.resetData(msData);
+			} else {
+				alert("상세정보를 불러오지 못했습니다.");
+			}
+		},
+		error: function (err) {
+			console.error("제조 계획 상세 데이터 로딩 실패", err);
+		}
+		});
+	});
+    	
+	
+	// 제조 상세 계획 내역 그리드 생성
+	let msdList = /*[[${msdList}]]*/ [];
+	
+	let msDetailGrid = new tui.Grid({
+	    el: document.getElementById('msDetailGrid'), 
+	    data: msdList,
+	    rowHeaders: ['checkbox'], 
+	    scrollX: true,
+	    scrollY: true,
+	    pageOptions: {
+	       useClient: true,   // 클라이언트 사이드 페이징 사용
+	       perPage: 10        // 페이지당 행 수
+	    },
+	    columnOptions: {
+	        resizable: true,     // 열 크기 조절 가능
+	        frozenCount: 0,      // 고정 열 없음
+	        minWidth: 100        // 최소 열 너비 설정
+	    },
+	    columns: [
+	        {
+	            header: '제조상세번호',
+	            name: 'MSD_NO',
+	            sortable: true,
+	            align: "center" 
+	        },
+	        {
+	            header: '제조계획코드',
+	            name: 'MS_CODE',
+	            sortable: true, 
+	            filter: 'text',
+	            align: "center" 
+	        },
+	       {
+	            header: '제품 코드',
+	            name: 'PARENT_PDT_CODE',
+	            sortable: true, 
+	            filter: 'text',
+	            align: "center" 
+	        },
+	        {
+	            header: '제품명',
+	            name: 'PDT_NAME',
+	            sortable: true, 
+	            filter: 'text',
+	            align: "center" 
+	        },
+	        {
+	            header: '코드 유형',
+	            name: 'ITEM_TYPE',
+	            fontSize: '40',
+	            sortable: true, 
+	            filter: 'text',
+	            align: 'center',
+	            formatter: function({ value }) {
+	                if (value === 'SEMI_FINISHED') {
+	                    return '반제품';
+	                } else if (value === 'RAW_MATERIAL') {
+	                    return '완제품';
+	                } else {
+	                    return value; // 혹시 다른 값이 들어오면 원래 값 표시
+	                }
+	            }
+	        },
+	        {
+	            header: '계획수량',
+	            name: 'MS_QTY',
+	            sortable: true,
+	            align: "center",
+	            editor: "text"
+	        },
+	        {
+	            header: '투입단위',
+	            name: 'QTYUNITNAME',
+	            sortable: true,
+	            align: 'center',
+	            editor: "text"
+	        }
+	    ], // 열 설정
+	    autoEdit: true,
+	    editingEvent: 'dblclick' 
+	});
+
+		
+	msDetailGrid.on('onGridUpdated', (ev) => {
+		// 그리드 레이아웃 새로고침 (로드가 다 되지 않는 경우 그리드가 흰색 화면으로 출력될 때가 있다.)
+		msDetailGrid.refreshLayout();
+	});
+		
+	let selectedEv2 = null;
+	msDetailGrid.on('click', (ev) => {
+		if(selectedEv2 !== null){
+			msDetailGrid.removeRowClassName(selectedEv2.rowKey, 'selectedRowClass');
+		}
+			
+		selectedEv2 = ev;
+		msDetailGrid.addRowClassName(selectedEv2.rowKey, 'selectedRowClass');
+	})
+	// 제조 상세 계획 내역 그리드 끝 (그리드 하단) =======================================
+	
+	
+	// 제조 계획 등록 그리드 시작 ========================================================
+	let mpList = /*[[${mpList}]]*/ [];
+	let mpGrid = null;	
+	
+	// 제조 계획 등록 모달창	
+	document.getElementById('mfgScheduleModal').addEventListener('shown.bs.modal', () => {
+		
+		// 제조 계획 등록 그리드 생성
+		if (!mpGrid) {	
+			mpGrid = new tui.Grid({
+				el: document.getElementById('mpGrid'), 
+				data : mpList,
+				rowHeaders: ['checkbox'],
+				pageOptions: {
+					useClient: true,
+					perPage: 5
+				},
+				columns: [
+					{
+						header: '생산계획코드',
+						name: 'mpCode',
+						sortable: true,
+						filter: 'text',
+						align: "center"
+					},
+					{
+						header: '등록직원사번',
+						name: 'empId',
+						sortable: true,
+						align: "center"
+					},
+					{
+						header: '등록직원명',
+						name: 'empName',
+						sortable: true,
+						filter: 'text',
+						align: "center"
+					},				
+					{
+						header: '제품코드',
+						name: 'pdtCode',
+						sortable: true,
+						filter: 'text',
+						align: "center"
+					},
+					{
+						header: '제품명',
+						name: 'pdtName', 
+						sortable: true,
+						filter: 'text',
+						align: "center"
+					},
+					{
+						header: '주문수량',
+						name: 'soQty',
+						sortable: true,
+						align: "center"
+					},
+					{
+						header: '주문단위',
+						name: 'qtyUnitName',
+						sortable: true,
+						align: "center"
+					},
+					{
+						header: '우선순위',
+						name: 'mpPriority', 
+						sortable: true,
+						align: "center"
+					},
+					{
+						header: '생산시작예정일',
+						name: 'mpStartDate',
+						sortable: true,
+						filter: 'text',
+						align: "center",
+						editor: false
+					},
+					{
+						header: '생산완료예정일',
+						name: 'mpEndDate', 
+						sortable: true,
+						filter: 'text',
+						align: "center",
+						editor: false
+					}
+				]
+			});
+		}	
+	});
+	
+	
+	//제조 계획 등록 시작 ===============================================================
+	$('#mfgScheduleRegiBtn').on('click', async function () {
+		
+		// 로그인한 유저 정보
+		const empId = document.getElementById('currentUserId')?.value;
+	
+		const checkedRows = mpGrid.getCheckedRows(); // 선택된 행 가져오기
+	
+		// 선택 항목 알림창
+		if (checkedRows.length === 0) {
+	        await Swal.fire({
+	            icon: 'warning',
+	            title: '선택된 항목 없음',
+	            text: '제조 계획 등록할 항목을 선택해주세요.'
+	        });
+	        return;
+	    }
+		
+		const confirmResult = await Swal.fire({
+			icon: 'question',
+		    title: '제조 계획으로 등록하시겠습니까?',
+		    showCancelButton: true,
+		    confirmButtonText: '등록',
+		    cancelButtonText: '취소'
+		});
+		
+		if (confirmResult.isConfirmed) {
+			const dataList = checkedRows.map((row, index) => ({
+	        	...row,
+	       	 	empId: empId
+	    	}));
+		
+			$.ajax({
+				url: "/ms/mfgScheduleRegi",
+				method : "POST",
+				contentType: "application/json",
+				data: JSON.stringify(dataList), // JSON 문자열로 전송
+				success : async function (response){
+					await Swal.fire({
+	                    icon: 'success',
+	                    title: '등록 완료',
+	                    text: '제조 계획 등록이 완료되었습니다.'
+	                });
+					location.reload();
+				},
+				error : function (error){
+					console.log(error);
+					Swal.fire({
+	                    icon: 'error',
+	                    title: '등록 실패',
+	                    text: '제조 계획 등록이 실패했습니다.'
+	                });
+				}
+			});
+		 }
+	});
+	// 제조 계획 등록 끝 ================================================================
+		
+	
+	// 행 아무곳이나 클릭하면 체크박스 활성화 ===========================================
+    mfgScheduleGrid.on('click', ev => {
+    	  const { rowKey, columnName } = ev;
+
+    	  if (columnName === '_checked') return;
+    	  const isChecked = mfgScheduleGrid.getCheckedRowKeys().includes(rowKey);
+    	  if (!isChecked) {
+    	    mfgScheduleGrid.check(rowKey);
+    	  } else {
+    	    mfgScheduleGrid.uncheck(rowKey);
+    	  }
+    });
+	// ==================================================================================
+	
+
+	// 상품 계획 삭제 시작 ==============================================================
+    async function deleteMs() {
+  		const checkedRows = mfgScheduleGrid.getCheckedRows();
+  		const msNos = checkedRows.map(row => row.msNo);
+
+  		if (msNos.length === 0) {
+  			await Swal.fire({
+  		    	icon: "warning",
+  		      	title: "삭제할 데이터를 선택해주세요."
+  		    });
+  		    return;
+  		}
+  		
+  		// '등록' 상태 아닌 항목만 필터링
+  		const invalidRows = checkedRows.filter(row => row.msStatus !== '등록');
+  		
+  	    if (invalidRows.length > 0) {
+  	        const statusMap = new Map();
+
+  	        // 상태별로 mpCode를 모읍니다
+  	        invalidRows.forEach(row => {
+  	            if (!statusMap.has(row.msStatus)) {
+  	                statusMap.set(row.msStatus, []);
+  	            }
+  	            statusMap.get(row.msStatus).push(row.msCode);
+  	        });
+
+  	        // 메시지 생성
+  	        let message = '';
+	  	    for (const status of statusMap.keys()) {
+	  	    	message += `${status}인 항목은 삭제할 수 없습니다.<br>`;
+	  	    }
+
+  	        await Swal.fire({
+  	            icon: "warning",
+  	            title: "삭제 불가",
+  	            html: message
+  	        });
+  	        return;
+  	    }
+
+  		const result = await Swal.fire({
+  		    title: "정말 삭제하시겠습니까?",
+  		    text: `총 ${msNos.length}건의 데이터를 삭제합니다.`,
+  		    icon: "warning",
+  		    showDenyButton: true,
+  		    confirmButtonText: "삭제",
+  		    denyButtonText: "취소",
+  		});
+
+  		if (result.isDenied) {
+  		    await Swal.fire({
+  		    	icon: "error",
+  		      	title: "삭제가 취소되었습니다.",
+  		    });
+  		    return;
+  		}
+  		  
+
+  		// 삭제 API 요청
+  		try {
+  			const response = await fetch('/ms/delete', {
+  		    	method: 'POST',
+  		      	headers: {
+  		        	'Content-Type': 'application/json'
+  		      	},
+  		      	body: JSON.stringify({ msNos: msNos }) // 필요 시 선택한 ID 전달
+  		    });
+
+  		    if (!response.ok) {
+  		    	await Swal.fire({
+  		        	icon: "error",
+  		       	 	title: "삭제 처리 중 오류가 발생했습니다",
+  		      	});
+  		      	throw new Error("삭제 처리 중 오류");
+  		    }
+
+  		    await Swal.fire({
+  		    	title: "삭제가 완료되었습니다",
+  		      	icon: "success",
+  		    });
+  		    
+  		    location.reload();
+
+  		} catch (error) {
+  		  console.error('Error:', error);
+  		  	await Swal.fire({
+  		    	icon: "error",
+  		      	title: "삭제 처리 중 오류가 발생했습니다",
+  		    });
+  		}
+  	}
+	// 제조 계획 삭제 끝 ================================================================
+	
+	
+	// 제조 계획 내역 엑셀 다운로드 =====================================================
+	
+    // 그리드 -> 엑셀 파일로 다운로드
+	document.getElementById('ExcelDownBtn').addEventListener('click', function () {
+	    
+		// 현재 그리드 데이터 가져오기
+		const gridData = msDetailGrid.getData();
+		
+		// 현재 그리드의 컬럼 값 가져오기
+	    const columns = msDetailGrid.getColumns();
+
+		// 컬럼을 header와 name으로 분리
+	    const header = columns.map(col => col.header);
+	    const keys = columns.map(col => col.name);
+
+		// header만큼 배열 생성
+	    const exportData = [header];
+
+		// row값을 데이터에 저장
+	    gridData.forEach(row => {
+	        const rowData = keys.map(key => row[key]);
+	        exportData.push(rowData);
+	    });
+
+		// CDN 이용
+	    const worksheet = XLSX.utils.aoa_to_sheet(exportData);
+	    const workbook = XLSX.utils.book_new();
+
+	    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+	    XLSX.writeFile(workbook, 'MFG-SCHEDULE-grid-data.xlsx');
+	});
+	// =================================================================================
+	
+	
+	// 제조 계획 검색 ==================================================================
+	
+  	// grid 데이터 원본 저장
+  	const originalData = mfgScheduleGrid.getData();
+
+  	document.getElementById('searchInput').addEventListener('input', function (e) {
+  		const keyword = e.target.value.toLowerCase();
+
+  	  	// 원본 데이터를 기준으로 필터링
+  	  	const filtered = originalData.filter(row => {
+  	    	return Object.values(row).some(val => {
+  	      		if (val == null) return false;
+  	      	return String(val).toLowerCase().includes(keyword);
+  	    	});
+  	  	});
+
+  	  	// 필터링된 데이터로 그리드 업데이트
+  	  	mfgScheduleGrid.resetData(filtered);
+  	});
+	
+	function applyFilter() {
+		const keyword = document.getElementById('searchInput').value.toLowerCase();
+
+		let filtered = originalData;
+
+		if (keyword) {
+			filtered = filtered.filter(row =>
+		    	Object.values(row).some(val =>
+		    		val != null && String(val).toLowerCase().includes(keyword)
+		    	)
+	    	);
+		}
+		mfgScheduleGrid.resetData(filtered);
+		}
+
+  		document.getElementById('msSearchBtn').addEventListener('click', applyFilter);
+		document.getElementById('searchInput').addEventListener('input', applyFilter);
+	// ================================================================================
+		
+	</script>
+	
+	</div>
+</body>
+</html>

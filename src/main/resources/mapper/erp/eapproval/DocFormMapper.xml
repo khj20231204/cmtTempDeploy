@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.cmtProject.mapper.erp.eapproval.DocFormMapper">
+
+    <!-- 양식 저장 -->
+    <insert id="insertDocForm" parameterType="com.example.cmtProject.dto.erp.eapproval.DocFormDTO">
+        INSERT INTO DOC_FORM_CONTENTS (
+            FORM_ID,
+            FORM_CONTENT,
+            CREATOR_ID,
+            CREATE_DATE
+        ) VALUES (
+            #{formId, jdbcType=VARCHAR},
+            #{formContent, jdbcType=CLOB},
+            #{creatorId, jdbcType=VARCHAR},
+            SYSDATE
+        )
+    </insert>
+    
+    <!-- 양식 수정 -->
+    <update id="updateDocForm" parameterType="com.example.cmtProject.dto.erp.eapproval.DocFormDTO">
+        UPDATE DOC_FORM_CONTENTS
+        SET
+            FORM_CONTENT = #{formContent, jdbcType=CLOB},
+            UPDATER_ID = #{updaterId, jdbcType=VARCHAR},
+            UPDATE_DATE = SYSDATE
+        WHERE FORM_ID = #{formId, jdbcType=VARCHAR}
+    </update>
+    
+    <!-- 양식 삭제 -->
+    <delete id="deleteDocForm">
+        DELETE FROM DOC_FORM_CONTENTS
+        WHERE FORM_ID = #{formId, jdbcType=VARCHAR}
+    </delete>
+    
+    <!-- 양식 목록 조회 -->
+    <select id="selectAllDocForms" resultMap="docFormResultMap">
+        SELECT 
+            FORM_ID, 
+            FORM_CONTENT, 
+            CREATOR_ID, 
+            CREATE_DATE, 
+            UPDATER_ID, 
+            UPDATE_DATE 
+        FROM DOC_FORM_CONTENTS
+        ORDER BY FORM_ID
+    </select>
+    
+    <!-- 특정 양식 조회 -->
+    <select id="selectDocFormById" resultMap="docFormResultMap">
+        SELECT 
+            FORM_ID, 
+            FORM_CONTENT, 
+            CREATOR_ID, 
+            CREATE_DATE, 
+            UPDATER_ID, 
+            UPDATE_DATE 
+        FROM DOC_FORM_CONTENTS 
+        WHERE FORM_ID = #{formId, jdbcType=VARCHAR}
+    </select>
+    
+    
+    <!-- Result Map -->
+    <resultMap id="docFormResultMap" type="com.example.cmtProject.dto.erp.eapproval.DocFormDTO">
+        <id property="formId" column="FORM_ID"/>
+        <result property="formContent" column="FORM_CONTENT"/>
+        <result property="creatorId" column="CREATOR_ID"/>
+        <result property="createDate" column="CREATE_DATE"/>
+        <result property="updaterId" column="UPDATER_ID"/>
+        <result property="updateDate" column="UPDATE_DATE"/>
+    </resultMap>
+</mapper>

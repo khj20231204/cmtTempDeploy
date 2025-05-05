@@ -1,0 +1,581 @@
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+	<div th:fragment="sidebar" >
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+	
+		<div id="topbar" class="d-block row d-flex justify-content-between align-items-center" >
+	        <div class="col-md-8 d-flex justify-content-start">
+	        
+		        <!-- 반응형 사이드바 메뉴 아이콘 -->
+		        <div id="sidebar-burger" class="d-flex align-items-center mx-4">
+		            <a href="#" class="burger-btn d-block d-xl-none d-flex align-items-center">
+		                <i class="bi bi-justify fs-3 d-flex align-items-center"></i>
+		            </a>
+		        </div>
+		        <div class="d-sm-none d-md-none d-lg-none d-xl-block" id="empty" ></div>
+		        <!-- 날짜 -->
+<!-- 	        	<div class="d-flex align-items-center">
+	        		<h5 id="todayDate" class="me-3 " >날짜</h5>
+	        		<button type="button" class="btn btn-primary" id="atndBtn" onclick="cmtBtn()">출근하기</button>
+	        		
+	        		data로 담아 갈 input
+	        		<input type="hidden" id="cmtCd">
+	        		<input type="hidden" id="cmtTime">
+	        		<input type="hidden" id="deptCd">
+					<input type="hidden" id="sttsCd">
+					<input type="hidden" id="empNo">
+					<input type="hidden" id="empId">
+				</div>    -->   
+			<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+			  <!-- 날짜 표시 영역 -->
+			  <div style="margin-right: 20px;">
+	        <div><h2 id="currentDate"></h2></div>
+				 <script>
+				  document.addEventListener("DOMContentLoaded", function () {
+				    const now = new Date();
+				
+				    const year = now.getFullYear();
+				    const month = String(now.getMonth() + 1).padStart(2, '0');
+				    const day = String(now.getDate()).padStart(2, '0');
+				
+				    // 요일을 한글로 변환
+				    const daysKor = ['일', '월', '화', '수', '목', '금', '토'];
+				    const dayOfWeek = daysKor[now.getDay()];
+				
+				    const formatted = `${year}년 ${month}월 ${day}일 (${dayOfWeek})`;
+				
+				    document.getElementById("currentDate").textContent = formatted;
+				  });
+				</script>
+	        </div>
+	        <!-- ✅ 사이드바 시간 표시 영역 -->
+			<div id="sidebar-time" style=" font-weight: bold; font-size: 30px; color: #333;">
+			  <span id="current-time">--:--:--</span>
+			</div>
+			
+			<script>
+			// ✅ 두 자리 숫자 보장하는 패딩 함수
+			function pad(n) {
+			  return n < 10 ? '0' + n : n;
+			}
+			
+			// ✅ 시간 포맷 함수 (00:00:00)
+			function formatTimeWithSeconds(date) {
+			  const hours = pad(date.getHours());
+			  const minutes = pad(date.getMinutes());
+			  const seconds = pad(date.getSeconds());
+			  return `${hours}:${minutes}:${seconds}`;
+			}
+			
+			// ✅ 시간 업데이트 함수
+			function updateTime() {
+			  const now = new Date();
+			  const timeString = formatTime(now);
+			  const timeEl = document.getElementById('current-time');
+			  if (timeEl) timeEl.textContent = timeString;
+			}
+			
+			// ✅ 1초마다 갱신
+			setInterval(updateTime, 1000);
+			updateTime(); // 초기 한 번 실행
+			
+			function updateTime() {
+			  const now = new Date();
+			  const timeString = formatTimeWithSeconds(now);
+			  const timeEl = document.getElementById('current-time');
+			  if (timeEl) timeEl.textContent = timeString;
+			}
+			
+			</script>
+			&nbsp;&nbsp;&nbsp;
+	        <div>
+		        <th:block th:if="${#authorization.expression('isAuthenticated()')}">
+			        <div class="btn-group-custom" style="text-align: left;">
+				        <th:block th:if="${!hasCheckedIn}">
+						    <button type="button" class="btn btn-lg btn-primary" onclick="checkIn()">출근</button>
+						</th:block>
+					    
+				        <th:block th:if="${hasCheckedIn && !hasCheckedOut}">
+				        	<button type="button" class="btn btn-lg btn-primary" onclick="checkOut()">퇴근</button>
+						</th:block>
+						<th:block th:if="${hasCheckedOut && hasCheckedIn}">
+						    <button type="button" class="btn btn-lg btn-primary disabled " onclick="checkOut()">퇴근</button>
+						</th:block>
+					</div>
+				</th:block>
+				</div>
+				</div>
+			</div>
+			
+			<!-- ✅ 오버레이 + 스피너 통합 -->
+			<div id="loadingOverlay" style="display: none;">
+			  <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+			    <span class="visually-hidden">Loading...</span>
+			  </div>
+			</div>
+			
+			<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+		    <script th:inline="javascript">
+		    const spinner = document.getElementById('loadingOverlay');
+		    
+		    async function checkIn() {
+		    	  // 사용자에게 출근 확인 알림 표시
+		    	  const result = await Swal.fire({
+		    	    title: "출근 하시겠습니까?",
+		    	    showDenyButton: true,
+		    	    confirmButtonText: "출근",
+		    	    denyButtonText: "아니요"
+		    	  });
+		    	  if (result.isDenied) {
+		    		  Swal.fire({
+		    			  icon: "error",
+			    		  title: "출근 처리에 실패했습니다.",
+			    		});
+		    		  return;
+		    		  }
+		    	  // 출근 API 요청
+		    	  try {
+					  // ✅ 로딩 시작
+					  spinner.style.display = 'flex';
+					
+					  const response = await fetch('/attends/check-in', {
+					    method: 'POST',
+					    headers: {
+					      'Content-Type': 'application/json'
+					    },
+					    body: JSON.stringify({})
+					  });
+					  // ✅ 로딩 종료
+					  spinner.style.display = 'none';
+					
+					  if (!response.ok) {
+					    await Swal.fire({
+					      icon: "error",
+					      title: "출근 처리 중 서버 오류가 <br>발생했습니다",
+					    });
+					    throw new Error("출근 처리 중 서버 오류");
+					  }
+					
+					  await Swal.fire({
+					    title: "출근이 처리되었습니다",
+					    icon: "success",
+					  });
+					
+					  location.reload();
+					
+					} catch (error) {
+					  console.error('Error:', error);
+					  await Swal.fire({
+					    icon: "error",
+					    title: "근무 일정 먼저 등록 바랍니다",
+					  });
+					
+					} 
+			    }
+		    
+		    	async function checkOut() {
+		    	  // 사용자에게 퇴근 확인 알림 표시
+		    	  const result = await Swal.fire({
+		    	    title: "퇴근 하시겠습니까?",
+		    	    showDenyButton: true,
+		    	    confirmButtonText: "퇴근",
+		    	    denyButtonText: "아니요"
+		    	  });
+	
+		    	  if (result.isDenied) {
+		    	    await Swal.fire({
+		    	      icon: "info",
+		    	      title: "퇴근이 취소되었습니다.",
+		    	    });
+		    	    return;
+		    	  }
+	
+		    	  // 퇴근 API 요청
+		    	  try {
+		    	    const response = await fetch('/attends/check-out', {
+		    	      method: 'POST',
+		    	      headers: {
+		    	        'Content-Type': 'application/json'
+		    	      },
+		    	      body: JSON.stringify({atdType: "ATT005"})
+		    	    });
+	
+		    	    if (!response.ok) {
+		    	      await Swal.fire({
+		    	        icon: "error",
+		    	        title: "퇴근 처리 중 서버 오류가 발생했습니다",
+		    	      });
+		    	      throw new Error("퇴근 처리 중 서버 오류");
+		    	    }
+	
+		    	    await Swal.fire({
+		    	      title: "퇴근이 처리되었습니다",
+		    	      icon: "success",
+		    	    });
+	
+		    	    location.reload();
+	
+		    	  } catch (error) {
+		    	    console.error('Error:', error);
+		    	    await Swal.fire({
+		    	      icon: "error",
+		    	      title: "퇴근 처리 중 서버 오류가 발생했습니다",
+		    	    });
+		    	  }
+		    	}
+		    
+			</script> 
+	        
+			<div class="col-md-4 d-flex justify-content-end"> 
+				<!-- 알림 아이콘  -->
+<!-- 				<a href="#" class="d-flex align-items-center"> -->
+<!-- 		        	<i class="fs-3 bi bi-bell-fill mx-3 d-flex align-items-center" id="top-bell"></i> -->
+<!-- 		        </a> -->
+		        
+<!-- 				마이페이지  -->
+<!-- 				<a href="#" class="d-flex align-items-center"> -->
+<!-- 		        	<i class=" fs-3 bi bi-person-circle mx-3 d-flex align-items-center"></i> -->
+<!-- 		        </a> -->
+				<!--사원이름 출력-->
+				 
+				<th:block th:if="${#authorization.expression('isAuthenticated()')}">
+					
+				
+				
+			        <i class="fa-solid fa-user" style=" margin-top: 5px; margin-right: 6px;"></i> <span th:text="${#authentication.principal.user.empName}"> </span>  /  <span th:text="${#authentication.principal.user.empId}"> </span>
+			    
+		        <!-- 로그아웃 버튼 -->
+
+				<button type="button" id="logoutBtn" class="btn btn-outline-secondary rounded-pill ms-3 me-4 d-flex align-items-center" onclick="logout()">
+					로그아웃 &nbsp; <i class="bi bi-box-arrow-right "></i>
+				</button>
+				
+				
+				
+				</th:block>
+				<th:block th:if="${!#authorization.expression('isAuthenticated()')}">
+
+
+
+					<button type="button" 
+				        id="loginBtn" 
+				        class="btn btn-outline-secondary rounded-pill ms-3 me-4 d-flex align-items-center" 
+				        onclick="location.href='/login'">
+				        로그인 &nbsp; <i class="bi bi-box-arrow-right "></i>
+					</button>
+				</th:block>
+	        </div> <!-- right -->
+		</div> <!-- topbar -->
+	<!-- 반드시 헤드에 이게 있어야 함 -->
+	
+		<div id="sidebar" class="active">
+			<div class="sidebar-wrapper active">
+		        <div class="sidebar-header">
+		            <div class="d-flex justify-content-between">
+		                <div class="logo">
+		                    <a href="/ "><img src="/assets/images/logo/logo.png" style="width: 150px; height: auto;" alt="Logo" srcset=""></a>
+		
+		                </div>
+		                <div class="toggler">
+		                    <a href="#" class="sidebar-hide d-xl-none d-block"><i class="bi bi-x bi-middle"></i></a>
+		                </div>
+		            </div>
+		        </div>
+				
+		        <div class="sidebar-menu">
+		            <ul class="menu">
+						
+						<!-- 단일 메뉴 -->
+		                <li class="sidebar-item ">
+		                    <a href="/" class='sidebar-link'>
+		                        <i class="bi bi-house-fill"></i>
+		                        <span>홈</span>
+		                    </a>
+		                </li>
+		                <li class="sidebar-item ">
+		                    <a href="/noticeList" class='sidebar-link'>
+		                        <i class="fa-solid fa-message"></i>
+		                        <span>공지사항</span>
+		                    </a>
+		                </li>
+		                
+						<!-- ERP / MES -->
+		                <li class="sidebar-title">ERP</li> 
+						
+		                <li class="sidebar-item ">
+		                </li>
+		                
+						<!-- 소메뉴가 있는 메뉴-->
+						
+						<!-- 항목들 참조 해서 추가로 생성하세요!!!!! -->
+		                <li class="sidebar-item  has-sub">
+		                    <a href="#" class='sidebar-link'>
+		                        <i class="fa-solid fa-list-check"></i>
+		                        <span>전자결재</span>
+		                    </a>
+		                    <ul class="submenu">
+		                        <li class="submenu-item ">
+		                            <a href="/eapproval/documents">문서함</a>
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/eapproval/document/new">기안서 작성</a>
+								</li>	
+							
+								<li class="submenu-item " sec:authorize="hasRole('ROLE_ADMIN')">
+								    <a href="/eapproval/forms">문서 양식 관리</a>
+								</li>	
+		                    </ul>
+		                </li>
+		                
+		                <li class="sidebar-item  has-sub">
+		                    <a href="#" class='sidebar-link'>
+		                        <i class="bi bi-people-fill"></i>
+		                        <span>인사</span>
+		                    </a>
+		                    <ul class="submenu">
+		                        <li class="submenu-item ">
+		                            <a href="/emp/myEmplist">인사 카드</a>
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/emp/emplist">인사 카드리스트</a>
+		                            
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/emp/empStatus">사원 현황</a>
+		                            
+		                        </li>
+		                    </ul>
+		                </li>
+						
+		
+		                <li class="sidebar-item  has-sub">
+		                    <a href="#" class='sidebar-link'>
+		                        <i class="bi bi-clock-fill"></i>
+		                        <span>근태</span>
+		                    </a>
+		                    <ul class="submenu ">
+		                        <li class="submenu-item ">
+		                            <a href="/attends/list">출퇴근 관리</a>
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/worktimes/list">근무 시간</a>
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/leaves/list">휴가 관리</a>
+		                        </li>
+		                    </ul>
+		                </li>
+		
+		                <li class="sidebar-item  has-sub">
+		                    <a href="#" class='sidebar-link'>
+		                        <i class="fa-solid fa-sack-dollar"></i>
+		                        <span>급여</span>
+		                    </a>
+		                    <ul class="submenu ">
+		                        <li class="submenu-item ">
+		                            <a href="/salaries/payList">급여 지급 내역</a>
+		                        </li>
+		                        <li class="submenu-item" sec:authorize="hasRole('ROLE_ADMIN')"> 
+		                            <a href="/salaries/payroll">급여 대장</a>
+		                        </li>
+		                    </ul>
+		                </li>
+						
+						<li class="sidebar-item  has-sub">
+		                    <a href="#" class='sidebar-link'>
+		                        <i class="bi bi-newspaper"></i>
+		                        <span>영업</span>
+		                    </a>
+		                    <ul class="submenu ">
+								<li class="submenu-item ">
+		                           <a href="/sales/soform">수주</a>
+		                        </li>
+		                        <li class="submenu-item ">
+		                            <a href="/purchases/poform">발주</a>
+		                        </li>
+		                        <!--<li class="submenu-item">
+		                            <a href="/sales/chart">차트</a>
+		                        </li>-->
+		                    </ul>
+		                </li>
+						
+						<li class="sidebar-title">MES</li>
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-pencil-square"></i>
+						        <span>기준 정보</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/bom/bom-info">상품/BOM 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/material-info">원자재 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/products-info">제품 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/clientInfo">거래처 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/qcm/quality-info">품질 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/line/line-info">라인 정보</a>
+						        </li>
+								<li class="submenu-item ">
+						            <a href="/equpemnt/equpemnt-info">설비 정보</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/warehouse/view">창고 정보</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-collection-fill"></i>
+						        <span>생산</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/mp/mfg-plan">생산 계획</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/ms/mfg-schedule">제조 계획</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+								<i class="bi bi-grid-fill"></i>
+						        <span>공정</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/workOrder">작업 지시</a>
+						        </li>
+								<li class="submenu-item ">
+						            <a href="/production/productionPrc">공정 현황</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/production/lotTracking">Lot 추적</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/ship">출하</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-pencil-square"></i>
+						        <span>품질 검사</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/iqc/inspection-info">입고 검사</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/ipi/inspection-info">공정 검사</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/fqc/inspection-info">출고 검사</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-nut-fill"></i>
+						        <span>설비</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/equipment-stts">설비 가동 현황</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/equipment-hstry">설비 이력</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-archive-fill"></i>
+						        <span>재고</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/materialinventory/view">원자재 재고 현황</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/productsinventory/view">완제품 재고 현황</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/materialreceipt/view">입고 관리</a>
+						        </li>
+						        <li class="submenu-item ">
+						            <a href="/productsissue/view">출고 관리</a>
+						        </li>
+						    </ul>
+						</li>
+						
+						<li class="sidebar-title"></li>
+						
+						 <li class="sidebar-item ">
+		                    <a href="/common-mng" class='sidebar-link' sec:authorize="hasRole('ROLE_ATHR001')">
+		                        <i class="bi bi-gear-fill"></i>
+		                        <span>관리</span>
+		                    </a>
+		                </li>
+						
+ 					<div sec:authorize="hasRole('ROLE_ADMIN')"> 
+						<li class="sidebar-title">관리자</li>
+						<li class="sidebar-item  has-sub">
+						    <a href="#" class='sidebar-link'>
+						        <i class="bi bi-gear"></i>
+						        <span>공통 관리</span>
+						    </a>
+						    <ul class="submenu ">
+						        <li class="submenu-item ">
+						            <a href="/comm/common">공통코드관리</a>
+						        </li>
+						    </ul>
+						</li>
+ 					</div> 
+		            </ul>
+		            
+		            
+		            <script type="text/javascript">
+					function logout(){
+					Swal.fire({
+				        title: '로그아웃 하시겠습니까?',
+				        icon: 'warning',
+				        showCancelButton: true,   // ← 반드시 켜줘야 No 버튼 나옴
+				        confirmButtonColor: '#435ebe',   // 네 버튼 색
+				        cancelButtonColor: '#f27474',       // 아니오 버튼 색
+				        confirmButtonText: '네',         // 네 버튼 이름
+				        cancelButtonText: '아니오'       // 아니오 버튼 이름
+				    }).then((result) => {
+				        if (result.isConfirmed) {
+							location.href='/logout';
+				        }
+				    });
+					}				
+				
+					</script>	
+		            
+		        </div>
+		        <button class="sidebar-toggler btn x"><i data-feather="x"></i></button>
+		    </div>
+		</div> <!-- sidebar -->
+	</div> <!-- th:fragment -->
+		
+</html>

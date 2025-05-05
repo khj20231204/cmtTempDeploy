@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ProductMapper.java 경로로 클래스명 ProductMapper까지 입력 --> 
+<mapper namespace="com.example.cmtProject.mapper.mes.standardInfoMgt.ProductMapper">
+	
+	<!-- resultType은 application.yml의 type-aliases-package경로의 entity  -->
+	<!-- 전체 조회 -->
+	
+	<select id="getProductTotalList" resultType="com.example.cmtProject.dto.mes.standardInfoMgt.ProductTotalDTO">
+	  SELECT * 
+		FROM PRODUCTS P
+		LEFT JOIN MATERIAL_TYPE M
+		  ON P.MTL_TYPE_CODE = M.MTL_TYPE_CODE
+		LEFT JOIN WEIGHT_UNIT W
+		  ON P.WT_TYPE_CODE = W.WT_TYPE_CODE
+		LEFT JOIN LENGTH_UNIT L
+		  ON P.LT_TYPE_CODE = L.LT_TYPE_CODE
+		LEFT JOIN PRODUCT_TYPE P2
+		  ON P.PDT_TYPE = P2.PDT_TYPE_CODE
+	   WHERE P.PDT_USEYN = 'Y'
+	</select>
+
+<!--     <select id="list" resultType="com.example.cmtProject.entity.mes.standardInfoMgt.Products"> -->
+<!--       SELECT *  -->
+<!-- 		FROM PRODUCTS -->
+<!--     </select> -->
+	
+	<!-- 선택 조회 -->
+    <select id="select" resultType="com.example.cmtProject.entity.mes.standardInfoMgt.Products">
+        SELECT *
+        FROM PRODUCTS
+        WHERE PDT_CODE = #{pdtCode}
+    </select>
+    
+	<!-- 등록 -->
+    <insert id="insert">
+        INSERT INTO PRODUCTS(PDT_CODE, PDT_NAME, PDT_SPECIFICATION, PDT_SHIPPING_PRICE) 
+        VALUES(#{pdtCode},#{pdtName},#{pdtSpecification},#{pdtShippingPrice});
+    </insert>
+
+    <!-- 수정 -->
+    <update id="update">
+        UPDATE PRODUCTS
+           SET PDT_CODE = #{pdtCode}
+              ,PDT_NAME = #{pdtName}
+        WHERE PDT_CODE = #{pdtCode}
+    </update>
+
+    <!-- 삭제 -->
+    <delete id="delete">
+        DELETE FROM PRODUCTS
+        WHERE PDT_CODE = #{pdtCode}
+    </delete>
+    
+    <!-- 기준 정보에서 수정 -->
+    <update id="pdtMainUpdate" parameterType="com.example.cmtProject.dto.mes.standardInfoMgt.ProductsEditDTO">
+    UPDATE PRODUCTS 
+    <set>
+    	<if test="columnName == 'pdtTypeName'">
+            PDT_TYPE = #{value}
+        </if>
+        <if test="columnName == 'pdtName'">
+            PDT_NAME = #{value}
+        </if>
+        <if test="columnName == 'pdtShippingPrice'">
+            PDT_SHIPPING_PRICE = CAST(#{value} AS NUMBER)
+        </if>
+        <if test="columnName == 'mtlTypeCode'">
+            MTL_TYPE_CODE = #{value}
+        </if>
+        <if test="columnName == 'pdtWeight'">
+            PDT_WEIGHT = #{value}
+        </if>
+        <if test="columnName == 'wtTypeCode'">
+            WT_TYPE_CODE = #{value}
+        </if>
+        <if test="columnName == 'pdtSize'">
+            PDT_SIZE = #{value}
+        </if>
+        <if test="columnName == 'ltTypeCode'">
+            LT_TYPE_CODE = #{value}
+        </if>
+        <if test="columnName == 'pdtComments'">
+            PDT_COMMENTS = #{value}
+        </if>
+    </set>
+    WHERE PDT_NO = #{pdtNo}
+	</update>
+</mapper>
