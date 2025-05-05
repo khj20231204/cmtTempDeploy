@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# AWS_REGION 환경변수 설정
+export AWS_REGION=ap-northeast-2
+
 # 기존 WAR 파일 삭제
 rm -f /usr/local/tomcat/webapps/ROOT.war
 rm -rf /usr/local/tomcat/webapps/ROOT

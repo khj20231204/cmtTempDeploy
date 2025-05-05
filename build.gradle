@@ -12,6 +12,10 @@ bootWar {
     archiveFileName = 'myapp.war' //명시적으로 WAR 이름 지정 가능
 }
 
+bootRun {
+    jvmArgs = ["-Dcom.amazonaws.sdk.disableEc2Metadata=true"]
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
