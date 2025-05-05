@@ -17,6 +17,3 @@ build
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
-
-### querydsl ###
-**/src/main/generated/querydsl/**
